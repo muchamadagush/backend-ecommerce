@@ -14,10 +14,10 @@ const createProduct = (data) => {
 };
 
 // Get all data from products table
-const getProducts = (limit, offset, order, sort) => {
+const getProducts = (limit, offset, order, sort, q) => {
   return new Promise((resolve, reject) => {
     conn.query(
-      `SELECT * FROM products ORDER BY ${order} ${sort} LIMIT ${limit} OFFSET ${offset}`,
+      `SELECT products.id as id, products.title as title, products.description as description, products.price as price, products.stock as stock, products.type as type, products.status as status, categories.title as category FROM products INNER JOIN categories ON products.category_id = categories.id WHERE products.title LIKE '%${q}%' ORDER BY ${order} ${sort} LIMIT ${limit} OFFSET ${offset}`,
       (err, res) => {
         if (!err) {
           resolve(res);

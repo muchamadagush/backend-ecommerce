@@ -2,10 +2,11 @@ const productModel = require("../models/products");
 
 // Create data to products table
 const createProduct = (req, res) => {
-  const { title, description, price, stock, type } = req.body;
+  const { title, description, category_id, price, stock, type } = req.body;
   const data = {
     title: title,
     description: description,
+    category_id: category_id,
     price: price,
     stock: stock,
     type: type,
@@ -35,14 +36,15 @@ const getProducts = (req, res) => {
   const perPage = req.query.perPage;
   const page = req.query.page || 1;
 
-  const order = req.query.orderBy || "id";
+  const order = req.query.orderBy || "title";
   const sort = req.query.sortBy || "ASC";
+  const q = req.query.q || '';
 
-  const limit = perPage || 10;
+  const limit = perPage || 5;
   const offset = (page - 1) * limit;
 
   productModel
-    .getProducts(limit, offset, order, sort)
+    .getProducts(limit, offset, order, sort, q)
     .then((result) => {
       const products = result;
       res.status(200);
@@ -59,11 +61,13 @@ const getProducts = (req, res) => {
 
 // Update data from products table
 const updateProduct = (req, res) => {
-  const { title, description, price, stock, type, status } = req.body;
+  const { title, description, category_id, price, stock, type, status } =
+    req.body;
   const id = req.params.id;
   const data = {
     title: title,
     description: description,
+    category_id: category_id,
     price: price,
     stock: stock,
     type: type,
