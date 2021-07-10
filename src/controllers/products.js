@@ -10,7 +10,7 @@ const createProduct = (req, res) => {
     price: price,
     stock: stock,
     type: type,
-    status: "off",
+    status: "on",
     createdAt: new Date(),
     updatedAt: new Date(),
   };

@@ -1,6 +1,7 @@
 const orderModels = require("../models/orders");
 const { v4: uuid } = require("uuid");
 
+// Create Order
 const createOrders = (req, res) => {
   const id = uuid().split("-").join("");
   const productId = req.params.productId;
@@ -38,7 +39,7 @@ const createOrders = (req, res) => {
                   .createOrderDetails(dataOrder)
                   .then((result) => {
                     res.status(201);
-                    result.info = "Successfully create order"
+                    result.info = "Successfully create order";
                     res.json({
                       message: result,
                     });
@@ -131,6 +132,27 @@ const createOrders = (req, res) => {
     });
 };
 
+// Update order status
+const updateOrderStatus = (req, res) => {
+  const status = req.body.status;
+  const orderId = req.params.id;
+
+  orderModels
+    .updateOrderStatus(status, orderId)
+    .then((result) => {
+      res.status(200);
+       res.json({
+         message: 'Order successfully update'
+       });
+    })
+    .catch((error) => {
+      res.json({
+        message: error,
+      });
+    });
+};
+
 module.exports = {
   createOrders,
+  updateOrderStatus,
 };
