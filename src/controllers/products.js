@@ -26,9 +26,9 @@ const createProduct = (req, res) => {
           productId: result.insertId,
           image: image[i],
         };
-        productImageModels.createProductImages(data).catch((err) => {
+        productImageModels.createProductImages(data).catch((error) => {
           res.json({
-            message: err,
+            message: error,
           });
         });
       }
@@ -40,9 +40,9 @@ const createProduct = (req, res) => {
         data: data,
       });
     })
-    .catch((err) => {
+    .catch((error) => {
       res.json({
-        message: err,
+        message: error,
       });
     });
 };
@@ -77,15 +77,47 @@ const getProducts = (req, res) => {
             data: products,
           });
         })
-        .catch((err) => {
+        .catch((error) => {
           res.json({
-            message: err,
+            message: error,
           });
         });
     })
     .catch((error) => {
       res.json({
         message: error,
+      });
+    });
+};
+
+// Get product by id
+const getProduct = (req, res) => {
+  const id = req.params.id;
+
+  productModel
+    .getProduct(id)
+    .then((result) => {
+      const data = result;
+      productImageModels
+        .getProductImages(id)
+        .then((result) => {
+          data[0].image = result;
+          res.status(200);
+          res.json({
+            data: data,
+          });
+        })
+        .catch((error) => {
+          res.status(404);
+          res.json({
+            message: "Data product not found",
+          });
+        });
+    })
+    .catch((error) => {
+      res.status(404);
+      res.json({
+        message: "Data product not found",
       });
     });
 };
@@ -114,9 +146,9 @@ const updateProduct = (req, res) => {
         message: "data successfully update",
       });
     })
-    .catch((err) => {
+    .catch((error) => {
       res.json({
-        message: err,
+        message: error,
       });
     });
 };
@@ -132,9 +164,9 @@ const deleteProduct = (req, res) => {
         message: "data successfully deleted",
       });
     })
-    .catch((err) => {
+    .catch((error) => {
       res.json({
-        message: err,
+        message: error,
       });
     });
 };
@@ -144,4 +176,5 @@ module.exports = {
   getProducts,
   updateProduct,
   deleteProduct,
+  getProduct,
 };

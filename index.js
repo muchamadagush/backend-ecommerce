@@ -6,7 +6,6 @@ const app = express();
 // routes
 const productRoutes = require("./src/routes/products");
 const categoryRoutes = require("./src/routes/category");
-const productImageRoutes = require("./src/routes/productImages");
 const orderRoutes = require('./src/routes/orders')
 const colorRoutes = require('./src/routes/colors')
 
@@ -17,7 +16,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/products", productRoutes);
 app.use("/category", categoryRoutes);
-app.use("/productimages", productImageRoutes);
 app.use("/orders", orderRoutes);
 app.use("/colors", colorRoutes);
 
