@@ -1,8 +1,10 @@
 const productModel = require("../models/products");
+const productImageModels = require("../models/productImages");
 
 // Create data to products table
 const createProduct = (req, res) => {
-  const { title, description, category_id, price, stock, type } = req.body;
+  const { title, description, category_id, price, stock, type, color, image } =
+    req.body;
   const data = {
     title: title,
     description: description,
@@ -10,6 +12,7 @@ const createProduct = (req, res) => {
     price: price,
     stock: stock,
     type: type,
+    color: JSON.stringify(color),
     status: "on",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -17,8 +20,21 @@ const createProduct = (req, res) => {
 
   productModel
     .createProduct(data)
-    .then(() => {
+    .then((result) => {
+      for (let i = 0; i < image.length; i++) {
+        const data = {
+          productId: result.insertId,
+          image: image[i],
+        };
+        productImageModels.createProductImages(data).catch((err) => {
+          res.json({
+            message: err,
+          });
+        });
+      }
+      console.log(result);
       res.status(201);
+      data.image = image;
       res.json({
         message: "data successfully created",
         data: data,
@@ -38,23 +54,38 @@ const getProducts = (req, res) => {
 
   const order = req.query.orderBy || "title";
   const sort = req.query.sortBy || "ASC";
-  const q = req.query.q || '';
+  const q = req.query.q || "";
 
   const limit = perPage || 5;
   const offset = (page - 1) * limit;
 
   productModel
-    .getProducts(limit, offset, order, sort, q)
+    .getAllProduct()
     .then((result) => {
-      const products = result;
-      res.status(200);
-      res.json({
-        data: products,
-      });
+      const allData = result.length;
+      const totalPage = Math.ceil(allData / limit);
+      productModel
+        .getProducts(limit, offset, order, sort, q)
+        .then((result) => {
+          const products = result;
+          res.status(200);
+          res.json({
+            allData: allData,
+            page: page,
+            perPage: limit,
+            totalPage: totalPage,
+            data: products,
+          });
+        })
+        .catch((err) => {
+          res.json({
+            message: err,
+          });
+        });
     })
-    .catch((err) => {
+    .catch((error) => {
       res.json({
-        message: err,
+        message: error,
       });
     });
 };
