@@ -1,6 +1,5 @@
 const orderModels = require("../models/orders");
 const { v4: uuid } = require("uuid");
-const conn = require("../configs/db");
 
 // Create Order
 const createOrders = (req, res) => {
@@ -198,7 +197,8 @@ const deleteOrderDetail = (req, res) => {
                             .catch((error) => {
                               res.status(500);
                               res.json({
-                                message: "Internal server error on update sub total order",
+                                message:
+                                  "Internal server error on update sub total order",
                                 error: error,
                               });
                             });
@@ -206,7 +206,8 @@ const deleteOrderDetail = (req, res) => {
                         .catch((error) => {
                           res.status(500);
                           res.json({
-                            message: "Internal server error on delete order details",
+                            message:
+                              "Internal server error on delete order details",
                             error: error,
                           });
                         });
@@ -279,8 +280,56 @@ const deleteOrderDetail = (req, res) => {
     });
 };
 
+// Get all data orders
+const getOrders = (req, res) => {
+  orderModels
+    .getOrders()
+    .then((result) => {
+      res.status(200);
+      res.json({
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.status(500);
+      res.json({
+        message: "Internal server error on get orders",
+        error: error,
+      });
+    });
+};
+
+const getOrderByIdUser = (req, res) => {
+  const userId = req.params.userId;
+
+  orderModels
+    .getOrderByIdUser(userId)
+    .then((result) => {
+      if (result.length) {
+        res.status(200);
+        res.json({
+          data: result,
+        });
+      } else {
+        res.status(404);
+        res.json({
+          message: `Order data where user id ${userId} not found`,
+        });
+      }
+    })
+    .catch((error) => {
+      res.status(500);
+      res.json({
+        message: "Internal server error on get order by user id",
+        error: error,
+      });
+    });
+};
+
 module.exports = {
   createOrders,
   updateOrderStatus,
   deleteOrderDetail,
+  getOrderByIdUser,
+  getOrders,
 };

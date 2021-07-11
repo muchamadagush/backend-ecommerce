@@ -130,10 +130,36 @@ const getOrderDetails = (orderId) => {
   })
 }
 
+// Get all data orders
+const getOrders = (id) => {
+  return new Promise((resolve, reject) => {
+    conn.query("SELECT * FROM orders", (error, result) => {
+      if (!error) {
+        resolve(result);
+      } else {
+        reject(error);
+      }
+    })
+  })
+}
+
 // Get order where orderId
 const getOrder = (id) => {
   return new Promise((resolve, reject) => {
     conn.query("SELECT * FROM orders WHERE id = ?", id, (error, result) => {
+      if (!error) {
+        resolve(result);
+      } else {
+        reject(error);
+      }
+    })
+  })
+}
+
+// Get order where user id
+const getOrderByIdUser = (id) => {
+  return new Promise((resolve, reject) => {
+    conn.query(`SELECT * FROM orders WHERE userId = ${id}`, (error, result) => {
       if (!error) {
         resolve(result);
       } else {
@@ -182,5 +208,7 @@ module.exports = {
   getOrderDetail,
   getOrderDetails,
   deleteOrderDetail,
-  deleteOrder
+  deleteOrder,
+  getOrderByIdUser,
+  getOrders
 }
