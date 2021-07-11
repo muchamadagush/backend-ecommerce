@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const formData = require("express-form-data");
 const app = express();
+const cors = require('cors')
 
 // routes
 const productRoutes = require("./src/routes/products");
@@ -10,6 +11,7 @@ const orderRoutes = require('./src/routes/orders')
 const colorRoutes = require('./src/routes/colors')
 
 // parse json
+app.use(cors());
 app.use(express.json());
 app.use(formData.parse());
 app.use(express.urlencoded({ extended: true }));

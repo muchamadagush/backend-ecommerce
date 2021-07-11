@@ -2,7 +2,7 @@ const categoryModel = require("../models/category");
 
 // Create data to categories table
 const createCategory = (req, res) => {
-  const { title, status } = req.body;
+  const { title } = req.body;
   const data = {
     title: title,
     status: "on",
@@ -85,8 +85,8 @@ const deleteCategory = (req, res) => {
   categoryModel
     .deleteCategory(id)
     .then(() => {
+      res.status(200),
       res.json({
-        status: res.status(204),
         message: "data successfully deleted",
       });
     })

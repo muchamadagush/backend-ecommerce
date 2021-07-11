@@ -29,7 +29,7 @@ const getProductImages = (id) => {
 // Delete data productImages where productId
 const deleteProductImage = (id) => {
   return new Promise((resolve, reject) => {
-    conn.query("DELETE FROM products WHERE id = ?", id, (error, result) => {
+    conn.query("DELETE FROM productimages WHERE id = ?", id, (error, result) => {
       if (!error) {
         resolve(result)
       } else {
