@@ -1,18 +1,25 @@
-const orderModels = require("../models/orders");
-const { v4: uuid } = require("uuid");
+/* eslint-disable no-param-reassign */
+/* eslint-disable no-console */
+/* eslint-disable radix */
+/* eslint-disable eqeqeq */
+/* eslint-disable no-shadow */
+const { v4: uuid } = require('uuid');
+const orderModels = require('../models/orders');
 
 // Create Order
-const createOrders = (req, res) => {
-  const id = uuid().split("-").join("");
-  const productId = req.params.productId;
-  const { size, color, qty, userId } = req.body;
+const createOrders = (req, res, next) => {
+  const id = uuid().split('-').join('');
+  const { productId } = req.params;
+  const {
+    size, color, qty, userId,
+  } = req.body;
 
   const dataOrder = {
     orderId: id,
-    productId: productId,
-    size: size,
-    color: color,
-    qty: qty,
+    productId,
+    size,
+    color,
+    qty,
   };
 
   orderModels
@@ -24,47 +31,45 @@ const createOrders = (req, res) => {
         .then((result) => {
           if (result.length == 0) {
             const data = {
-              id: id,
-              userId: userId,
-              subTotal: subTotal,
-              status: "oncart",
+              id,
+              userId,
+              subTotal,
+              status: 'oncart',
               createdAt: new Date(),
               updatedAt: new Date(),
             };
             orderModels
               .createOrders(data)
-              .then((result) => {
+              .then(() => {
                 orderModels
                   .createOrderDetails(dataOrder)
                   .then((result) => {
                     res.status(201);
-                    result.info = "Successfully create order";
+                    result.info = 'Successfully create order';
                     res.json({
                       message: result,
                     });
                   })
                   .catch((error) => {
                     res.json({
-                      message: "error create order details",
-                      error: error,
+                      message: 'error create order details',
+                      error,
                     });
                   });
               })
               .catch((error) => {
-                res.json({
-                  message: "error create order",
-                  error: error,
-                });
+                console.log(error);
+                next(new Error('Internal server error'));
               });
           } else {
-            let idOrder = result[0].id;
-            let subTotalUpdate = result[0].subTotal + subTotal;
+            const idOrder = result[0].id;
+            const subTotalUpdate = result[0].subTotal + subTotal;
             const orderDetail = {
               orderId: idOrder,
-              productId: productId,
-              size: size,
-              color: color,
-              qty: qty,
+              productId,
+              size,
+              color,
+              qty,
             };
 
             orderModels
@@ -79,103 +84,93 @@ const createOrders = (req, res) => {
                         .then((result) => {
                           res.status(201);
                           res.json({
-                            message: "Data succesfully created",
+                            message: 'Data succesfully created',
                             data: result,
                           });
                         })
                         .catch((error) => {
-                          res.json({
-                            message: "error create order details",
-                            error: error,
-                          });
+                          console.log(error);
+                          next(new Error('Internal server error'));
                         });
                     } else {
                       const idOrderDetails = result[0].id;
-                      let qtyUpdate = result[0].qty + parseInt(qty);
+                      const qtyUpdate = result[0].qty + parseInt(qty);
                       orderModels
                         .updateOrderDetails(qtyUpdate, idOrderDetails)
                         .then((result) => {
                           res.status(200);
                           res.json({
-                            message: "Data succesfully updated",
+                            message: 'Data succesfully updated',
                             data: result,
                           });
                         })
                         .catch((error) => {
-                          res.json({
-                            message: "error update order details",
-                            error: error,
-                          });
+                          console.log(error);
+                          next(new Error('Internal server error'));
                         });
                     }
                   })
                   .catch((error) => {
-                    res.json({
-                      message: "error check order details",
-                      error: error,
-                    });
+                    console.log(error);
+                    next(new Error('Internal server error'));
                   });
               })
               .catch((error) => {
-                res.json({
-                  message: error,
-                });
+                console.log(error);
+                next(new Error('Internal server error'));
               });
           }
         })
         .catch((error) => {
-          res.json({
-            message: error,
-          });
+          console.log(error);
+          next(new Error('Internal server error'));
         });
     })
     .catch((error) => {
-      res.json({
-        message: error,
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
 // Update order status
-const updateOrderStatus = (req, res) => {
-  const status = req.body.status;
+const updateOrderStatus = (req, res, next) => {
+  const { status } = req.body;
   const orderId = req.params.id;
 
   orderModels
     .updateOrderStatus(status, orderId)
-    .then((result) => {
+    .then(() => {
       res.status(200);
       res.json({
-        message: "Order successfully update",
+        message: 'Order successfully update',
       });
     })
     .catch((error) => {
-      res.json({
-        message: error,
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
-const deleteOrderDetail = (req, res) => {
-  const id = req.params.id;
+const deleteOrderDetail = (req, res, next) => {
+  const { id } = req.params;
 
   orderModels
     .getOrderDetail(id)
     .then((result) => {
       if (result.length == 1) {
-        const orderId = result[0].orderId;
-        const productId = result[0].productId;
+        const { orderId } = result[0];
+        const { productId } = result[0];
         const orderQty = result[0].qty;
 
         orderModels
           .getProduct(productId)
           .then((result) => {
-            const price = result[0].price;
+            const { price } = result[0];
             const minusSubTotal = orderQty * price;
             orderModels
               .getOrderDetails(orderId)
               .then((result) => {
-                const orderId = result[0].orderId;
+                const { orderId } = result[0];
                 if (result.length > 1) {
                   orderModels
                     .getOrder(orderId)
@@ -190,98 +185,72 @@ const deleteOrderDetail = (req, res) => {
                               res.status(200);
                               res.json({
                                 message:
-                                  "Product successfully deleted from cart",
+                                  'Product successfully deleted from cart',
                                 data: result,
                               });
                             })
                             .catch((error) => {
-                              res.status(500);
-                              res.json({
-                                message:
-                                  "Internal server error on update sub total order",
-                                error: error,
-                              });
+                              console.log(error);
+                              next(new Error('Internal server error'));
                             });
                         })
                         .catch((error) => {
-                          res.status(500);
-                          res.json({
-                            message:
-                              "Internal server error on delete order details",
-                            error: error,
-                          });
+                          console.log(error);
+                          next(new Error('Internal server error'));
                         });
                     })
-                    .catch(() => {
-                      res.status(500);
-                      res.json({
-                        message: "Internal server error on get order where id",
-                        error: error,
-                      });
+                    .catch((error) => {
+                      console.log(error);
+                      next(new Error('Internal server error'));
                     });
                 } else {
                   orderModels
                     .deleteOrder(orderId)
-                    .then((result) => {
+                    .then(() => {
                       orderModels
                         .deleteOrderDetail(id)
                         .then((result) => {
                           res.status(200);
                           res.json({
-                            message: "Product successfully deleted from cart",
+                            message: 'Product successfully deleted from cart',
                             data: result,
                           });
                         })
                         .catch((error) => {
-                          res.status(500);
-                          res.json({
-                            message: "Internal server error",
-                            error: error,
-                          });
+                          console.log(error);
+                          next(new Error('Internal server error'));
                         });
                     })
                     .catch((error) => {
-                      res.status(500);
-                      res.json({
-                        message: "Internal server error",
-                        error: error,
-                      });
+                      console.log(error);
+                      next(new Error('Internal server error'));
                     });
                 }
               })
               .catch((error) => {
-                res.status(500);
-                res.json({
-                  message: "Internal server error",
-                  error: error,
-                });
+                console.log(error);
+                next(new Error('Internal server error'));
               });
           })
           .catch((error) => {
-            res.status(500);
-            res.json({
-              message: "Internal server error on get product",
-              error: error,
-            });
+            console.log(error);
+            next(new Error('Internal server error'));
           });
       } else {
         res.status(404);
         res.json({
-          message: "Data product not found",
+          message: 'Data product not found',
         });
       }
     })
     .catch((error) => {
-      res.status(500);
-      res.json({
-        message: "Internal server error",
-        error: error,
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
 // Get all data orders
-const getOrders = (req, res) => {
+const getOrders = (req, res, next) => {
   orderModels
     .getOrders()
     .then((result) => {
@@ -291,16 +260,13 @@ const getOrders = (req, res) => {
       });
     })
     .catch((error) => {
-      res.status(500);
-      res.json({
-        message: "Internal server error on get orders",
-        error: error,
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
-const getOrderByIdUser = (req, res) => {
-  const userId = req.params.userId;
+const getOrderByIdUser = (req, res, next) => {
+  const { userId } = req.params;
 
   orderModels
     .getOrderByIdUser(userId)
@@ -318,11 +284,8 @@ const getOrderByIdUser = (req, res) => {
       }
     })
     .catch((error) => {
-      res.status(500);
-      res.json({
-        message: "Internal server error on get order by user id",
-        error: error,
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
