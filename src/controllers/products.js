@@ -158,11 +158,28 @@ const deleteProduct = (req, res) => {
   const id = req.params.id;
   productModel
     .deleteProduct(id)
-    .then(() => {
-      res.status(204);
-      res.json({
-        message: "data successfully deleted",
-      });
+    .then((result) => {
+      if (result.affectedRows != 0) {
+        productImageModels.deleteProductImage(id)
+        .then((result) => {
+          res.status(200);
+          res.json({
+            message: "Product successfully deleted",
+          });
+        })
+        .catch((error) => {
+          res.status(500);
+           res.json({
+             message: "Internal server error",
+             error: error
+           });
+        })
+      } else {
+        res.status(404);
+        res.json({
+          message: "Product not found",
+        });
+      }
     })
     .catch((error) => {
       res.json({
