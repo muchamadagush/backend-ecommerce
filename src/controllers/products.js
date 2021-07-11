@@ -1,20 +1,25 @@
-const productModel = require("../models/products");
-const productImageModels = require("../models/productImages");
+/* eslint-disable no-console */
+/* eslint-disable no-shadow */
+/* eslint-disable no-plusplus */
+/* eslint-disable eqeqeq */
+const productModel = require('../models/products');
+const productImageModels = require('../models/productImages');
 
 // Create data to products table
-const createProduct = (req, res) => {
-  const { title, description, categoryId, price, stock, type, color, mainImage, image } =
-    req.body;
+const createProduct = (req, res, next) => {
+  const {
+    title, description, categoryId, price, stock, type, color, mainImage, image,
+  } = req.body;
   const data = {
-    title: title,
-    description: description,
+    title,
+    description,
     category_id: categoryId,
-    price: price,
-    stock: stock,
-    type: type,
+    price,
+    stock,
+    type,
     color: JSON.stringify(color),
-    status: "on",
-    mainImage: mainImage,
+    status: 'on',
+    mainImage,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -38,25 +43,24 @@ const createProduct = (req, res) => {
       res.status(201);
       data.image = image;
       res.json({
-        message: "data successfully created",
-        data: data,
+        message: 'data successfully created',
+        data,
       });
     })
     .catch((error) => {
-      res.json({
-        message: error,
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
 // Get all data from products table
-const getProducts = (req, res) => {
-  const perPage = req.query.perPage;
+const getProducts = (req, res, next) => {
+  const { perPage } = req.query;
   const page = req.query.page || 1;
 
-  const order = req.query.orderBy || "title";
-  const sort = req.query.sortBy || "ASC";
-  const q = req.query.q || "";
+  const order = req.query.orderBy || 'title';
+  const sort = req.query.sortBy || 'ASC';
+  const q = req.query.q || '';
 
   const limit = perPage || 5;
   const offset = (page - 1) * limit;
@@ -72,29 +76,27 @@ const getProducts = (req, res) => {
           const products = result;
           res.status(200);
           res.json({
-            allData: allData,
-            page: page,
+            allData,
+            page,
             perPage: limit,
-            totalPage: totalPage,
+            totalPage,
             data: products,
           });
         })
         .catch((error) => {
-          res.json({
-            message: error,
-          });
+          console.log(error);
+          next(new Error('Internal server error'));
         });
     })
     .catch((error) => {
-      res.json({
-        message: error,
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
 // Get product by id
-const getProduct = (req, res) => {
-  const id = req.params.id;
+const getProduct = (req, res, next) => {
+  const { id } = req.params;
 
   productModel
     .getProduct(id)
@@ -106,39 +108,36 @@ const getProduct = (req, res) => {
           data[0].image = result;
           res.status(200);
           res.json({
-            data: data,
+            data,
           });
         })
         .catch((error) => {
-          res.status(404);
-          res.json({
-            message: "Data product not found",
-          });
+          console.log(error);
+          next(new Error('Internal server error'));
         });
     })
     .catch((error) => {
-      res.status(404);
-      res.json({
-        message: "Data product not found",
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
 // Update data from products table
-const updateProduct = (req, res) => {
-  const { title, description, categoryId, price, stock, type, status, color, mainImage } =
-    req.body;
-  const id = req.params.id;
+const updateProduct = (req, res, next) => {
+  const {
+    title, description, categoryId, price, stock, type, status, color, mainImage,
+  } = req.body;
+  const { id } = req.params;
   const data = {
-    title: title,
-    description: description,
+    title,
+    description,
     category_id: categoryId,
-    price: price,
-    stock: stock,
-    type: type,
-    status: status,
+    price,
+    stock,
+    type,
+    status,
     color: JSON.stringify(color),
-    mainImage: mainImage,
+    mainImage,
     updatedAt: new Date(),
   };
 
@@ -147,86 +146,81 @@ const updateProduct = (req, res) => {
     .then(() => {
       res.status(200);
       res.json({
-        message: "data successfully update",
+        message: 'data successfully update',
       });
     })
     .catch((error) => {
-      res.json({
-        message: error,
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
 // Delete data from products table
-const deleteProduct = (req, res) => {
-  const id = req.params.id;
+const deleteProduct = (req, res, next) => {
+  const { id } = req.params;
   productModel
     .deleteProduct(id)
     .then((result) => {
       if (result.affectedRows != 0) {
         productImageModels
           .deleteProductImage(id)
-          .then((result) => {
+          .then(() => {
             res.status(200);
             res.json({
-              message: "Product successfully deleted",
+              message: 'Product successfully deleted',
             });
           })
           .catch((error) => {
-            res.status(500);
-            res.json({
-              message: "Internal server error",
-              error: error,
-            });
+            console.log(error);
+            next(new Error('Internal server error'));
           });
       } else {
         res.status(404);
         res.json({
-          message: "Product not found",
+          message: 'Product not found',
         });
       }
     })
     .catch((error) => {
-      res.json({
-        message: error,
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
 // Update product images where idProduct
-const updateProductImages = (req, res) => {
+const updateProductImages = (req, res, next) => {
   const productId = req.params.id;
-  const image = req.body.image
+  const { image } = req.body;
 
   productImageModels
     .deleteProductImage(productId)
-    .then(() => {
-      for (let i = 0; i < image.length; i++) {
-        const data = {
-          productId: productId,
-          image: image[i],
-        };
-        productImageModels.createProductImages(data)
-          .catch((error) => {
-            res.json({
-              message: "Internal server error on update image", 
-              error: error,
+    .then((result) => {
+      if (result.affectedRows) {
+        for (let i = 0; i < image.length; i++) {
+          const data = {
+            productId,
+            image: image[i],
+          };
+          productImageModels.createProductImages(data)
+            .catch((error) => {
+              console.log(error);
+              next(new Error('Internal server error'));
             });
-          });
+        }
+        res.status(200);
+        res.json({
+          message: 'successfully update images product',
+        });
+      } else {
+        res.status(404);
+        res.json({
+          message: 'data not found',
+        });
       }
-      res.status(201);
-      data.image = image;
-      res.json({
-        message: "successfully update images product",
-        data: data,
-      });
     })
     .catch((error) => {
-      res.status(500);
-      res.json({
-        message: "Internal server error",
-        error: error,
-      });
+      console.log(error);
+      next(new Error('Internal server error'));
     });
 };
 
@@ -236,5 +230,5 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getProduct,
-  updateProductImages
+  updateProductImages,
 };
