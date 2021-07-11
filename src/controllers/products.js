@@ -160,20 +160,21 @@ const deleteProduct = (req, res) => {
     .deleteProduct(id)
     .then((result) => {
       if (result.affectedRows != 0) {
-        productImageModels.deleteProductImage(id)
-        .then((result) => {
-          res.status(200);
-          res.json({
-            message: "Product successfully deleted",
+        productImageModels
+          .deleteProductImage(id)
+          .then((result) => {
+            res.status(200);
+            res.json({
+              message: "Product successfully deleted",
+            });
+          })
+          .catch((error) => {
+            res.status(500);
+            res.json({
+              message: "Internal server error",
+              error: error,
+            });
           });
-        })
-        .catch((error) => {
-          res.status(500);
-           res.json({
-             message: "Internal server error",
-             error: error
-           });
-        })
       } else {
         res.status(404);
         res.json({

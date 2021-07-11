@@ -16,7 +16,7 @@ const getProduct = (productId) => {
 // Check order available
 const checkOrder = (userId) => {
   return new Promise((resolve, reject) => {
-    conn.query(`SELECT * FROM orders WHERE userId = ${userId} AND status = 'ordered'`, (error, result) => {
+    conn.query(`SELECT * FROM orders WHERE userId = ${userId} AND status = 'oncart'`, (error, result) => {
       if (!error) {
         resolve(result)
       } else {
@@ -104,6 +104,71 @@ const updateOrderStatus = (status, orderId) => {
   })
 }
 
+// Get order details where id
+const getOrderDetail = (id) => {
+  return new Promise((resolve, reject) => {
+    conn.query("SELECT * FROM orderdetails WHERE id = ?", id, (error, result) => {
+      if (!error) {
+        resolve(result);
+      } else {
+        reject(error);
+      }
+    })
+  })
+}
+
+// Get order details where orderId
+const getOrderDetails = (orderId) => {
+  return new Promise((resolve, reject) => {
+    conn.query("SELECT * FROM orderdetails WHERE orderId = ?", orderId, (error, result) => {
+      if (!error) {
+        resolve(result);
+      } else {
+        reject(error);
+      }
+    })
+  })
+}
+
+// Get order where orderId
+const getOrder = (id) => {
+  return new Promise((resolve, reject) => {
+    conn.query("SELECT * FROM orders WHERE id = ?", id, (error, result) => {
+      if (!error) {
+        resolve(result);
+      } else {
+        reject(error);
+      }
+    })
+  })
+}
+
+// Delete order detail where id
+const deleteOrderDetail = (id) => {
+  return new Promise((resolve, reject) => {
+    conn.query("DELETE FROM orderdetails WHERE id = ?", id, (error, result) => {
+      if (!error) {
+        resolve(result);
+      } else {
+        reject(error);
+      }
+    })
+  })
+}
+
+// Delete order detail where id
+const deleteOrder = (orderId) => {
+  return new Promise((resolve, reject) => {
+    conn.query("DELETE FROM orders WHERE id = ?", orderId, (error, result) => {
+      if (!error) {
+        resolve(result);
+      } else {
+        reject(error);
+      }
+    })
+  })
+}
+
 module.exports = {
   getProduct,
   createOrders,
@@ -113,4 +178,9 @@ module.exports = {
   updateOrderDetails,
   updateOrder,
   updateOrderStatus,
+  getOrder,
+  getOrderDetail,
+  getOrderDetails,
+  deleteOrderDetail,
+  deleteOrder
 }
