@@ -62,26 +62,33 @@ const getProducts = (req, res, next) => {
   const sort = req.query.sortBy || 'ASC';
   const q = req.query.q || '';
 
-  const limit = perPage || 5;
+  const limit = perPage || 15;
   const offset = (page - 1) * limit;
 
   productModel
-    .getAllProduct()
+    .getAllProduct(q)
     .then((result) => {
       const allData = result.length;
       const totalPage = Math.ceil(allData / limit);
       productModel
         .getProducts(limit, offset, order, sort, q)
         .then((result) => {
-          const products = result;
-          res.status(200);
-          res.json({
-            allData,
-            page,
-            perPage: limit,
-            totalPage,
-            data: products,
-          });
+          if (result.length) {
+            const products = result;
+            res.status(200);
+            res.json({
+              allData,
+              page,
+              perPage: limit,
+              totalPage,
+              data: products,
+            });
+          } else {
+            res.status(404);
+            res.json({
+              message: 'Page not found',
+            });
+          }
         })
         .catch((error) => {
           console.log(error);

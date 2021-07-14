@@ -2,10 +2,12 @@
 require('dotenv').config();
 
 const express = require('express');
+const fileUpload = require('express-fileupload');
 const formData = require('express-form-data');
-
 const app = express();
 const cors = require('cors');
+app.use(fileUpload());
+
 
 // routes
 const productRoutes = require('./src/routes/products');
@@ -30,7 +32,8 @@ app.use('*', (req, res) => {
   });
 });
 
-app.use((err, req, res) => {
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({
     message: err.message,

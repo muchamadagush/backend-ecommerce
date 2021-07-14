@@ -12,8 +12,8 @@ const createProduct = (data) => new Promise((resolve, reject) => {
 });
 
 // Get all data from products table
-const getAllProduct = () => new Promise((resolve, reject) => {
-  conn.query('SELECT * FROM products', (error, result) => {
+const getAllProduct = (search) => new Promise((resolve, reject) => {
+  conn.query(`SELECT * FROM products WHERE products.title LIKE '%${search}%' ORDER BY title ASC`, (error, result) => {
     if (!error) {
       resolve(result);
     } else {
@@ -23,9 +23,9 @@ const getAllProduct = () => new Promise((resolve, reject) => {
 });
 
 // Make pagination, search, sort data, and join with categories table
-const getProducts = (limit, offset, order, sort, q) => new Promise((resolve, reject) => {
+const getProducts = (limit, offset, order, sort, search) => new Promise((resolve, reject) => {
   conn.query(
-    `SELECT products.id as id, products.title as title, products.description as description, products.price as price, products.stock as stock, products.type as type, products.status as status, products.color as color, products.mainImage as mainImage, categories.title as category FROM products INNER JOIN categories ON products.category_id = categories.id WHERE products.title LIKE '%${q}%' ORDER BY ${order} ${sort} LIMIT ${limit} OFFSET ${offset}`,
+    `SELECT products.id as id, products.title as title, products.description as description, products.price as price, products.stock as stock, products.type as type, products.status as status, products.color as color, products.mainImage as mainImage, categories.title as category FROM products INNER JOIN categories ON products.category_id = categories.id WHERE products.title LIKE '%${search}%' ORDER BY ${order} ${sort} LIMIT ${limit} OFFSET ${offset}`,
     (error, result) => {
       if (!error) {
         resolve(result);

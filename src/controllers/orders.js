@@ -25,106 +25,111 @@ const createOrders = (req, res, next) => {
   orderModels
     .getProduct(productId)
     .then((result) => {
-      const subTotal = result[0].price * qty;
-      orderModels
-        .checkOrder(userId)
-        .then((result) => {
-          if (result.length == 0) {
-            const data = {
-              id,
-              userId,
-              subTotal,
-              status: 'oncart',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
-            orderModels
-              .createOrders(data)
-              .then(() => {
-                orderModels
-                  .createOrderDetails(dataOrder)
-                  .then((result) => {
-                    res.status(201);
-                    result.info = 'Successfully create order';
-                    res.json({
-                      message: result,
+      if (result.length) {
+        const subTotal = result[0].price * qty;
+        orderModels
+          .checkOrder(userId)
+          .then((result) => {
+            if (result.length == 0) {
+              const data = {
+                id,
+                userId,
+                subTotal,
+                status: 'oncart',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
+              orderModels
+                .createOrders(data)
+                .then(() => {
+                  orderModels
+                    .createOrderDetails(dataOrder)
+                    .then((result) => {
+                      res.status(201);
+                      result.info = 'Successfully create order';
+                      res.json({
+                        message: result,
+                      });
+                    })
+                    .catch((error) => {
+                      console.log(error);
+                      next(new Error('Internal server error'));
                     });
-                  })
-                  .catch((error) => {
-                    res.json({
-                      message: 'error create order details',
-                      error,
-                    });
-                  });
-              })
-              .catch((error) => {
-                console.log(error);
-                next(new Error('Internal server error'));
-              });
-          } else {
-            const idOrder = result[0].id;
-            const subTotalUpdate = result[0].subTotal + subTotal;
-            const orderDetail = {
-              orderId: idOrder,
-              productId,
-              size,
-              color,
-              qty,
-            };
+                })
+                .catch((error) => {
+                  console.log(error);
+                  next(new Error('Internal server error'));
+                });
+            } else {
+              const idOrder = result[0].id;
+              const subTotalUpdate = result[0].subTotal + subTotal;
+              const orderDetail = {
+                orderId: idOrder,
+                productId,
+                size,
+                color,
+                qty,
+              };
 
-            orderModels
-              .updateOrder(subTotalUpdate, idOrder)
-              .then(() => {
-                orderModels
-                  .checkOrderDetails(idOrder, productId, size, color)
-                  .then((result) => {
-                    if (result.length == 0) {
-                      orderModels
-                        .createOrderDetails(orderDetail)
-                        .then((result) => {
-                          res.status(201);
-                          res.json({
-                            message: 'Data succesfully created',
-                            data: result,
+              orderModels
+                .updateOrder(subTotalUpdate, idOrder)
+                .then(() => {
+                  orderModels
+                    .checkOrderDetails(idOrder, productId, size, color)
+                    .then((result) => {
+                      if (result.length == 0) {
+                        orderModels
+                          .createOrderDetails(orderDetail)
+                          .then((result) => {
+                            res.status(201);
+                            res.json({
+                              message: 'Data succesfully created',
+                              data: result,
+                            });
+                          })
+                          .catch((error) => {
+                            console.log(error);
+                            next(new Error('Internal server error'));
                           });
-                        })
-                        .catch((error) => {
-                          console.log(error);
-                          next(new Error('Internal server error'));
-                        });
-                    } else {
-                      const idOrderDetails = result[0].id;
-                      const qtyUpdate = result[0].qty + parseInt(qty);
-                      orderModels
-                        .updateOrderDetails(qtyUpdate, idOrderDetails)
-                        .then((result) => {
-                          res.status(200);
-                          res.json({
-                            message: 'Data succesfully updated',
-                            data: result,
+                      } else {
+                        const idOrderDetails = result[0].id;
+                        const qtyUpdate = result[0].qty + parseInt(qty);
+                        orderModels
+                          .updateOrderDetails(qtyUpdate, idOrderDetails)
+                          .then((result) => {
+                            res.status(200);
+                            res.json({
+                              message: 'Data succesfully updated',
+                              data: result,
+                            });
+                          })
+                          .catch((error) => {
+                            console.log(error);
+                            next(new Error('Internal server error'));
                           });
-                        })
-                        .catch((error) => {
-                          console.log(error);
-                          next(new Error('Internal server error'));
-                        });
-                    }
-                  })
-                  .catch((error) => {
-                    console.log(error);
-                    next(new Error('Internal server error'));
-                  });
-              })
-              .catch((error) => {
-                console.log(error);
-                next(new Error('Internal server error'));
-              });
-          }
-        })
-        .catch((error) => {
-          console.log(error);
-          next(new Error('Internal server error'));
+                      }
+                    })
+                    .catch((error) => {
+                      console.log(error);
+                      next(new Error('Internal server error'));
+                    });
+                })
+                .catch((error) => {
+                  console.log(error);
+                  next(new Error('Internal server error'));
+                });
+            }
+          })
+          .catch((error) => {
+            console.log(error);
+            next(new Error('Internal server error'));
+          });
+      } else {
+        res.status(404);
+        res.json({
+          message: 'data not found',
         });
+      }
     })
     .catch((error) => {
       console.log(error);
