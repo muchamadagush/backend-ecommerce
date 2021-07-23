@@ -4,53 +4,86 @@
 /* eslint-disable eqeqeq */
 const productModel = require('../models/products');
 const productImageModels = require('../models/productImages');
+const { v4: uuid } = require('uuid');
+const path = require('path');
+
+// Handle upload image
+const uploadImageHandler = async (req) => {
+  if (req.files === null) {
+    throw new Error('Image product cannot be null')
+  }
+  const files = req.files.image
+  
+  const productImages = []
+  await files.map((file) => {
+    const extension = file.name.split('.').slice(-1)
+    const fileName = `${uuid()}.${extension}`
+    const outputPath = path.join(__dirname, `/../assets/images/products/${fileName}`)
+
+    productImages.push(fileName)
+    
+    file.mv(outputPath)
+  })
+
+  return {
+    message: 'Successfully uploaded',
+    file_name: productImages,
+  }
+}
 
 // Create data to products table
-const createProduct = (req, res, next) => {
-  const {
-    title, description, categoryId, price, stock, type, color, mainImage, image,
-  } = req.body;
-  const data = {
-    title,
-    description,
-    category_id: categoryId,
-    price,
-    stock,
-    type,
-    color: JSON.stringify(color),
-    status: 'on',
-    mainImage,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+const createProduct = async (req, res, next) => {
+  try {
+    const {
+      title, description, categoryId, price, stock, type, color,
+    } = req.body;
 
-  productModel
-    .createProduct(data)
-    .then((result) => {
-      if (image.length != 0) {
-        for (let i = 0; i < image.length; i++) {
-          const data = {
-            productId: result.insertId,
-            image: image[i],
-          };
-          productImageModels.createProductImages(data).catch((error) => {
-            res.json({
-              message: error,
-            });
-          });
-        }
-      }
-      res.status(201);
-      data.image = image;
-      res.json({
-        message: 'data successfully created',
-        data,
-      });
-    })
-    .catch((error) => {
-      console.log(error);
-      next(new Error('Internal server error'));
+    if (!title) {
+      throw new Error('Title cannot be null')
+    }
+    if (!description) {
+      throw new Error('Description cannot be null')
+    }
+    if (!categoryId) {
+      throw new Error('Category id cannot be null')
+    }
+    if (!price) {
+      throw new Error('Price cannot be null')
+    }
+    if (!stock) {
+      throw new Error('Stock cannot be null')
+    }
+    if (!type) {
+      throw new Error('Type cannot be null')
+    }
+    if (!color) {
+      throw new Error('Color cannot be null')
+    }
+
+    const image = await uploadImageHandler(req)
+
+    const data = {
+      title,
+      description,
+      category_id: categoryId,
+      price,
+      stock,
+      type,
+      color,
+      image: JSON.stringify(image.file_name)
+    }
+
+    await productModel.createProduct(data)
+
+    res.status(201)
+    .send({
+      message: 'created new category',
+      data,
     });
+    
+  } catch (error) {
+    next(new Error(error.message));
+  }
 };
 
 // Get all data from products table
@@ -60,18 +93,18 @@ const getProducts = (req, res, next) => {
 
   const order = req.query.orderBy || 'title';
   const sort = req.query.sortBy || 'ASC';
-  const q = req.query.q || '';
+  const search = req.query.search || '';
 
   const limit = perPage || 15;
   const offset = (page - 1) * limit;
 
   productModel
-    .getAllProduct(q)
+    .getAllProduct(search)
     .then((result) => {
       const allData = result.length;
       const totalPage = Math.ceil(allData / limit);
       productModel
-        .getProducts(limit, offset, order, sort, q)
+        .getProducts(limit, offset, order, sort, search)
         .then((result) => {
           if (result.length) {
             const products = result;
@@ -143,7 +176,7 @@ const updateProduct = (req, res, next) => {
     stock,
     type,
     status,
-    color: JSON.stringify(color),
+    color,
     mainImage,
     updatedAt: new Date(),
   };
@@ -231,6 +264,32 @@ const updateProductImages = (req, res, next) => {
     });
 };
 
+// Get product where category
+const getProductWhereCategory = (req, res, next) => {
+  const categoryId = Number(req.params.category_id)
+  console.log(categoryId, typeof categoryId)
+  productModel
+    .getProductWhereCategory(categoryId)
+    .then((result) => {
+      if (result.length) {
+        const products = result;
+        res.status(200);
+        res.json({
+          data: products,
+        });
+      } else {
+        res.status(404);
+        res.json({
+          message: 'Page not found',
+        });
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+      next(new Error('Internal server error'));
+    });
+}
+
 module.exports = {
   createProduct,
   getProducts,
@@ -238,4 +297,5 @@ module.exports = {
   deleteProduct,
   getProduct,
   updateProductImages,
+  getProductWhereCategory
 };

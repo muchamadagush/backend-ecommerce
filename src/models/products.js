@@ -11,6 +11,17 @@ const createProduct = (data) => new Promise((resolve, reject) => {
   });
 });
 
+// Get all data from products table where category
+const getProductWhereCategory = (categoryId) => new Promise((resolve, reject) => {
+  conn.query(`SELECT * FROM products WHERE category_id = ${categoryId}`, (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
 // Get all data from products table
 const getAllProduct = (search) => new Promise((resolve, reject) => {
   conn.query(`SELECT * FROM products WHERE products.title LIKE '%${search}%' ORDER BY title ASC`, (error, result) => {
@@ -76,4 +87,5 @@ module.exports = {
   deleteProduct,
   getAllProduct,
   getProduct,
+  getProductWhereCategory
 };
