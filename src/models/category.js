@@ -25,6 +25,20 @@ const getCategory = (limit, offset, order, sort) => new Promise((resolve, reject
   );
 });
 
+// Get data from categories table
+const getCategoryById = (id) => new Promise((resolve, reject) => {
+  conn.query(
+    `SELECT * FROM categories WHERE id = ${id}`,
+    (error, result) => {
+      if (!error) {
+        resolve(result);
+      } else {
+        reject(error);
+      }
+    },
+  );
+});
+
 // Update data from categories table
 const updateCategory = (data, id) => new Promise((resolve, reject) => {
   conn.query(
@@ -56,4 +70,5 @@ module.exports = {
   getCategory,
   updateCategory,
   deleteCategory,
+  getCategoryById
 };
