@@ -5,7 +5,6 @@ const express = require('express');
 const fileUpload = require('express-fileupload');
 const app = express();
 const cors = require('cors');
-app.use(fileUpload());
 
 
 // routes
@@ -19,8 +18,9 @@ const usersRoutes = require('./src/routes/users');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use(fileUpload());
 
-app.use('/files', express.static(__dirname + '/src/assets/images/category'))
+app.use('/files', express.static(__dirname + '/src/assets/images'))
 app.use('/products', productRoutes);
 app.use('/category', categoryRoutes);
 app.use('/orders', orderRoutes);
