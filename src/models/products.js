@@ -36,7 +36,7 @@ const getAllProduct = (search) => new Promise((resolve, reject) => {
 // Make pagination, search, sort data, and join with categories table
 const getProducts = (limit, offset, order, sort, search) => new Promise((resolve, reject) => {
   conn.query(
-    `SELECT products.id as id, products.title as title, products.description as description, products.price as price, products.stock as stock, products.type as type, products.status as status, products.color as color, products.mainImage as mainImage, categories.title as category FROM products INNER JOIN categories ON products.category_id = categories.id WHERE products.title LIKE '%${search}%' ORDER BY ${order} ${sort} LIMIT ${limit} OFFSET ${offset}`,
+    `SELECT products.id as id, products.title as title, products.description as description, products.price as price, products.stock as stock, products.type as type, products.status as status, products.color as color, products.image as image, categories.title as category FROM products INNER JOIN categories ON products.category_id = categories.id WHERE products.title LIKE '%${search}%' ORDER BY ${order} ${sort} LIMIT ${limit} OFFSET ${offset}`,
     (error, result) => {
       if (!error) {
         resolve(result);

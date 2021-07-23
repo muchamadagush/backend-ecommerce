@@ -9,7 +9,5 @@ router
   .put('/:id', productController.updateProduct)
   .delete('/:id', productController.deleteProduct)
   .get('/:id', productController.getProduct)
-  .put('/images/:id', productController.updateProductImages)
-  .get('/category/:category_id', productController.getProductWhereCategory);
 
 module.exports = router;
