@@ -2,6 +2,7 @@
 const categoryModel = require("../models/category");
 const { v4: uuid } = require("uuid");
 const path = require("path");
+const fs = require("fs/promises");
 
 const uploadImageHandler = async (req) => {
   if (req.files === null) {
@@ -32,6 +33,11 @@ const uploadImageHandler = async (req) => {
 
 const createCategory = async (req, res, next) => {
   try {
+    if (req.user.role != 1)
+      return res
+        .status(400)
+        .send({ message: "you do not have access rights to add category data" });
+
     if (!req.body.title) {
       throw new Error("Title cannot be null");
     }
@@ -103,6 +109,11 @@ const getCategoryById = (req, res, next) => {
 // Update data from categories table
 const updateCategory = async (req, res, next) => {
   try {
+    if (req.user.role != 1)
+      return res
+        .status(400)
+        .send({ message: "you do not have access rights to edit category data" });
+
     if (!req.body.title) {
       throw new Error("Title cannot be null");
     }
@@ -121,7 +132,17 @@ const updateCategory = async (req, res, next) => {
       updatedAt: new Date(),
     };
 
+    const category = await categoryModel.getCategoryById(id)
+    const oldImage = category[0].image
+
     await categoryModel.updateCategory(data, id);
+
+    fs.unlink(path.join(__dirname, `/../assets/images/${oldImage}`)),
+      (err) => {
+        if (err) {
+          console.log("Error unlink image product!" + err);
+        }
+      };
 
     res.status(200).send({
       message: "successfully update category!",
@@ -133,28 +154,34 @@ const updateCategory = async (req, res, next) => {
 };
 
 // Delete data from categories table
-const deleteCategory = (req, res, next) => {
-  const { id } = req.params;
+const deleteCategory = async (req, res, next) => {
+  try {
+    if (req.user.role != 1)
+      return res
+        .status(400)
+        .send({ message: "you do not have access rights to delete category data" });
 
-  categoryModel
-    .deleteCategory(id)
-    .then((result) => {
-      if (result.affectedRows) {
-        res.status(200);
-        res.json({
-          message: "data successfully deleted",
-        });
-      } else {
-        res.status(404);
-        res.json({
-          message: "data not found",
-        });
-      }
-    })
-    .catch((error) => {
-      console.log(error);
-      next(new Error("Internal server error"));
+    const { id } = req.params;
+
+    const category = await categoryModel.getCategoryById(id)
+    const oldImage = category[0].image
+
+    await categoryModel.deleteCategory(id)
+
+    fs.unlink(path.join(__dirname, `/../assets/images/${oldImage}`)),
+      (err) => {
+        if (err) {
+          console.log("Error unlink image product!" + err);
+        }
+      };
+
+    res.status(202);
+    res.json({
+      message: "data successfully deleted",
     });
+  } catch (error) {
+    next(new Error(`Internal server error ${error}`));
+  }
 };
 
 module.exports = {
