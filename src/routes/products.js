@@ -2,12 +2,13 @@ const express = require('express');
 
 const router = express.Router();
 const productController = require('../controllers/products');
+const auth = require('../middleware/auth')
 
 router
-  .post('/', productController.createProduct)
+  .post('/', auth, productController.createProduct)
   .get('/', productController.getProducts)
-  .put('/:id', productController.updateProduct)
-  .delete('/:id', productController.deleteProduct)
+  .put('/:id', auth, productController.updateProduct)
+  .delete('/:id', auth, productController.deleteProduct)
   .get('/:id', productController.getProduct)
 
 module.exports = router;

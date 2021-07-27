@@ -2,77 +2,98 @@
 /* eslint-disable no-shadow */
 /* eslint-disable no-plusplus */
 /* eslint-disable eqeqeq */
-const productModel = require('../models/products');
-const productImageModels = require('../models/productImages');
-const { v4: uuid } = require('uuid');
-const path = require('path');
+const productModel = require("../models/products");
+const productImageModels = require("../models/productImages");
+const { v4: uuid } = require("uuid");
+const path = require("path");
+const redis = require("redis");
+const client = redis.createClient();
+const fs = require("fs/promises");
 
 // Handle upload image
 const uploadImageHandler = async (req) => {
   if (req.files === null) {
-    throw new Error('Image product cannot be null!')
+    throw new Error("Image product cannot be null!");
   }
-  const fileSize = 0
 
-  const files = req.files.image
+  const files = req.files.image;
 
-  const productImages = []
-  await files.map((file) => {
-    console.log(file.mimetype)
-    if (file.size > (2 * 1024 * 1024)) {
-      throw new Error('File size too large!')
+  const productImages = [];
+  
+  if (Array.isArray(files)) {
+    files.map((file) => {
+      if (file.size > 2 * 1024 * 1024) {
+        throw new Error("File size too large!");
+      }
+
+      const allowedExtension = [".png", ".jpg", ".jpeg"];
+      const extension = path.extname(file.name);
+      const fileName = `${uuid()}${extension}`;
+      const outputPath = path.join(__dirname, `/../assets/images/${fileName}`);
+
+      if (!allowedExtension.includes(extension)) {
+        throw new Error(`File type ${extension} are not supported!`)
+      }
+
+      productImages.push(fileName);
+
+      file.mv(outputPath);
+    });
+  }
+
+  if (Array.isArray(files) == false) {
+    const allowedExtension = [".png", ".jpg", ".jpeg"];
+    const { image: file } = req.files;
+    const extension = path.extname(file.name);
+
+    if (file.size > 2 * 1024 * 1024) {
+      throw new Error("File size too large!");
     }
-    
-    const allowedExtension = ['.png','.jpg','.jpeg']
-    const extension = path.extname(file.name)
-    const fileName = `${uuid()}${extension}`
-    const outputPath = path.join(__dirname, `/../assets/images/${fileName}`)
 
     if (!allowedExtension.includes(extension)) {
       throw new Error(`File type ${extension} are not supported!`)
     }
 
-    productImages.push(fileName)
+    const fileName = `${uuid()}${extension}`;
+    const outputPath = path.join(__dirname, `/../assets/images/${fileName}`);
 
-    file.mv(outputPath)
-  })
+    productImages.push(fileName);
+
+    await file.mv(outputPath);
+  }
 
   return {
-    message: 'Successfully uploaded',
+    message: "Successfully uploaded",
     file_name: productImages,
-  }
-}
+  };
+};
 
 // Create data to products table
 const createProduct = async (req, res, next) => {
   try {
-    const {
-      title, description, categoryId, price, stock, type, color,
-    } = req.body;
+    if (req.user.role != 1)
+      return res
+        .status(400)
+        .send({ message: "you do not have access rights to add product data" });
 
-    if (!title) {
-      throw new Error('Title cannot be null!')
-    }
-    if (!description) {
-      throw new Error('Description cannot be null!')
-    }
-    if (!categoryId) {
-      throw new Error('Category id cannot be null!')
-    }
-    if (!price) {
-      throw new Error('Price cannot be null!')
-    }
-    if (!stock) {
-      throw new Error('Stock cannot be null!')
-    }
-    if (!type) {
-      throw new Error('Type cannot be null!')
-    }
-    if (!color) {
-      throw new Error('Color cannot be null!')
-    }
+    const { title, description, categoryId, price, stock, type, color } =
+      req.body;
 
-    const image = await uploadImageHandler(req)
+    if (!title)
+      return res.status(400).send({ message: "Title cannot be null" });
+    if (!description)
+      return res.status(400).send({ message: "Description cannot be null" });
+    if (!categoryId)
+      return res.status(400).send({ message: "Category id cannot be null" });
+    if (!price)
+      return res.status(400).send({ message: "Price cannot be null" });
+    if (!stock)
+      return res.status(400).send({ message: "Stock cannot be null" });
+    if (!type) return res.status(400).send({ message: "Type cannot be null" });
+    if (!color)
+      return res.status(400).send({ message: "Color cannot be null" });
+
+    const image = await uploadImageHandler(req);
 
     const data = {
       title,
@@ -82,17 +103,15 @@ const createProduct = async (req, res, next) => {
       stock,
       type,
       color,
-      image: JSON.stringify(image.file_name)
-    }
+      image: JSON.stringify(image.file_name),
+    };
 
-    await productModel.createProduct(data)
+    await productModel.createProduct(data);
 
-    res.status(201)
-      .send({
-        message: 'created new category',
-        data,
-      });
-
+    res.status(201).send({
+      message: "created new category",
+      data,
+    });
   } catch (error) {
     next(new Error(error.message));
   }
@@ -103,9 +122,9 @@ const getProducts = (req, res, next) => {
   const { perPage } = req.query;
   const page = req.query.page || 1;
 
-  const order = req.query.orderBy || 'title';
-  const sort = req.query.sortBy || 'ASC';
-  const search = req.query.search || '';
+  const order = req.query.orderBy || "title";
+  const sort = req.query.sortBy || "ASC";
+  const search = req.query.search || "";
 
   const limit = perPage || 15;
   const offset = (page - 1) * limit;
@@ -114,14 +133,18 @@ const getProducts = (req, res, next) => {
     .getAllProduct(search)
     .then((result) => {
       const allData = result.length;
+
+      // set cache redis
+      client.setex("allProduct", 60, allData);
+
       const totalPage = Math.ceil(allData / limit);
       productModel
         .getProducts(limit, offset, order, sort, search)
         .then((result) => {
           if (result.length) {
-            const image = JSON.parse(result[0].image)
+            const image = JSON.parse(result[0].image);
             const products = result;
-            products[0].image = image
+            products[0].image = image;
             res.status(200);
             res.json({
               allData,
@@ -133,18 +156,18 @@ const getProducts = (req, res, next) => {
           } else {
             res.status(404);
             res.json({
-              message: 'Page not found',
+              message: "Data not found",
             });
           }
         })
         .catch((error) => {
           console.log(error);
-          next(new Error('Internal server error'));
+          next(new Error("Internal server error"));
         });
     })
     .catch((error) => {
       console.log(error);
-      next(new Error('Internal server error'));
+      next(new Error("Internal server error"));
     });
 };
 
@@ -155,9 +178,9 @@ const getProduct = (req, res, next) => {
   productModel
     .getProduct(id)
     .then((result) => {
-      const image = JSON.parse(result[0].image)
+      const image = JSON.parse(result[0].image);
       const products = result;
-      products[0].image = image
+      products[0].image = image;
       res.status(200);
       res.json({
         data: products,
@@ -165,41 +188,47 @@ const getProduct = (req, res, next) => {
     })
     .catch((error) => {
       console.log(error);
-      next(new Error('Internal server error'));
+      next(new Error("Internal server error"));
     });
 };
 
 // Update data from products table
 const updateProduct = async (req, res, next) => {
   try {
-    const { id } = req.params
+    if (req.user.role != 1)
+      return res
+        .status(400)
+        .send({ message: "you do not have access rights to update product data" });
+
+    const { id } = req.params;
     const {
-      title, description, categoryId, price, stock, type, color,
+      title,
+      description,
+      categoryId,
+      price,
+      stock,
+      type,
+      color,
+      status,
     } = req.body;
 
-    if (!title) {
-      throw new Error('Title cannot be null')
-    }
-    if (!description) {
-      throw new Error('Description cannot be null')
-    }
-    if (!categoryId) {
-      throw new Error('Category id cannot be null')
-    }
-    if (!price) {
-      throw new Error('Price cannot be null')
-    }
-    if (!stock) {
-      throw new Error('Stock cannot be null')
-    }
-    if (!type) {
-      throw new Error('Type cannot be null')
-    }
-    if (!color) {
-      throw new Error('Color cannot be null')
-    }
+    if (!title)
+      return res.status(400).send({ message: "Title cannot be null" });
+    if (!description)
+      return res.status(400).send({ message: "Description cannot be null" });
+    if (!categoryId)
+      return res.status(400).send({ message: "Category id cannot be null" });
+    if (!price)
+      return res.status(400).send({ message: "Price cannot be null" });
+    if (!stock)
+      return res.status(400).send({ message: "Stock cannot be null" });
+    if (!type) return res.status(400).send({ message: "Type cannot be null" });
+    if (!color)
+      return res.status(400).send({ message: "Color cannot be null" });
+    if (!status)
+      return res.status(400).send({ message: "Status cannot be null" });
 
-    const image = await uploadImageHandler(req)
+    const image = await uploadImageHandler(req);
 
     const data = {
       title,
@@ -209,57 +238,70 @@ const updateProduct = async (req, res, next) => {
       stock,
       type,
       color,
-      image: JSON.stringify(image.file_name)
-    }
+      status,
+      image: JSON.stringify(image.file_name),
+    };
 
-    await productModel.updateProduct(data, id)
+    const images = await productModel.getProduct(id);
+    const oldImages = JSON.parse(images[0].image);
 
-    res.status(201)
-      .send({
-        message: 'created new category',
-        data,
-      });
+    await productModel.updateProduct(data, id);
+
+    oldImages.map((img) => {
+      fs.unlink(path.join(__dirname, `/../assets/images/${img}`)),
+        (err) => {
+          if (err) {
+            console.log("Error unlink image product!" + err);
+          }
+        };
+    });
+
+    res.status(200).send({
+      message: "Successfully update product!",
+      data,
+    });
   } catch (error) {
     next(new Error(error.message));
   }
 };
 
 // Delete data from products table
-const deleteProduct = (req, res, next) => {
-  const { id } = req.params;
-  productModel
-    .deleteProduct(id)
-    .then((result) => {
-      if (result.affectedRows != 0) {
-        productImageModels
-          .deleteProductImage(id)
-          .then(() => {
-            res.status(200);
-            res.json({
-              message: 'Product successfully deleted',
-            });
-          })
-          .catch((error) => {
-            console.log(error);
-            next(new Error('Internal server error'));
-          });
-      } else {
-        res.status(404);
-        res.json({
-          message: 'Product not found',
-        });
-      }
-    })
-    .catch((error) => {
-      console.log(error);
-      next(new Error('Internal server error'));
+const deleteProduct = async (req, res, next) => {
+  try {
+    if (req.user.role != 1)
+      return res
+        .status(400)
+        .send({ message: "you do not have access rights to delete product data" });
+
+    const { id } = req.params
+
+    const images = await productModel.getProduct(id);
+    const oldImages = JSON.parse(images[0].image);
+
+    await productModel.deleteProduct(id)
+
+    oldImages.map((img) => {
+      fs.unlink(path.join(__dirname, `/../assets/images/${img}`)),
+        (err) => {
+          if (err) {
+            console.log("Error unlink image product!" + err);
+          }
+        };
     });
+
+    res.status(202)
+    res.json({
+      message: "Product successfully deleted",
+    })
+  } catch (error) {
+    next(new Error("Internal server error"))
+  }
 };
 
 // Get product where category
 const getProductWhereCategory = (req, res, next) => {
-  const categoryId = Number(req.params.category_id)
-  console.log(categoryId, typeof categoryId)
+  const categoryId = Number(req.params.category_id);
+  console.log(categoryId, typeof categoryId);
   productModel
     .getProductWhereCategory(categoryId)
     .then((result) => {
@@ -272,15 +314,15 @@ const getProductWhereCategory = (req, res, next) => {
       } else {
         res.status(404);
         res.json({
-          message: 'Page not found',
+          message: "Page not found",
         });
       }
     })
     .catch((error) => {
       console.log(error);
-      next(new Error('Internal server error'));
+      next(new Error("Internal server error"));
     });
-}
+};
 
 module.exports = {
   createProduct,
@@ -288,5 +330,5 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getProduct,
-  getProductWhereCategory
+  getProductWhereCategory,
 };
