@@ -5,27 +5,14 @@ const express = require('express');
 const fileUpload = require('express-fileupload');
 const app = express();
 const cors = require('cors');
-
-
-// routes
-const productRoutes = require('./src/routes/products');
-const categoryRoutes = require('./src/routes/category');
-const orderRoutes = require('./src/routes/orders');
-const colorRoutes = require('./src/routes/colors');
-const usersRoutes = require('./src/routes/users');
+const router = require('./src/routes')
 
 // parse json
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(fileUpload());
-
-app.use('/files', express.static(__dirname + '/src/assets/images'))
-app.use('/products', productRoutes);
-app.use('/category', categoryRoutes);
-app.use('/orders', orderRoutes);
-app.use('/colors', colorRoutes);
-app.use('/users', usersRoutes);
+app.use('/v1', router);
 
 app.use('*', (req, res) => {
   res.status(404).json({
