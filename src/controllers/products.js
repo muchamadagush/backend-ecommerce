@@ -6,8 +6,9 @@ const productModel = require("../models/products");
 const productImageModels = require("../models/productImages");
 const { v4: uuid } = require("uuid");
 const path = require("path");
-const redis = require("redis");
-const client = redis.createClient();
+const redisGet = require('../middleware/redis')
+const redis = require('redis')
+const client = redis.createClient(6379);
 const fs = require("fs/promises");
 
 // Handle upload image
@@ -132,19 +133,17 @@ const getProducts = (req, res, next) => {
   productModel
     .getAllProduct(search)
     .then((result) => {
-      const allData = result.length;
+      const allData = result.lesngth;
 
-      // set cache redis
-      client.setex("allProduct", 60, allData);
+      // set cache redis all product
+      client.setex("allProduct", 60*60, JSON.stringify(result));
 
       const totalPage = Math.ceil(allData / limit);
       productModel
         .getProducts(limit, offset, order, sort, search)
         .then((result) => {
           if (result.length) {
-            const image = JSON.parse(result[0].image);
             const products = result;
-            products[0].image = image;
             res.status(200);
             res.json({
               allData,
@@ -181,6 +180,10 @@ const getProduct = (req, res, next) => {
       const image = JSON.parse(result[0].image);
       const products = result;
       products[0].image = image;
+
+      // set cache redis product by id
+      client.setex(`v1/products/${id}`, 60 * 60, JSON.stringify(products));
+
       res.status(200);
       res.json({
         data: products,
