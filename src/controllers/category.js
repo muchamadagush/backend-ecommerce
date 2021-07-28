@@ -3,6 +3,7 @@ const categoryModel = require("../models/category");
 const { v4: uuid } = require("uuid");
 const path = require("path");
 const fs = require("fs/promises");
+const redis = require('../models/redis')
 
 const uploadImageHandler = async (req) => {
   if (req.files === null) {
@@ -64,46 +65,68 @@ const createCategory = async (req, res, next) => {
 };
 
 // Get data from categories table
-const getCategory = (req, res, next) => {
-  const { perPage, page, orderBy, sortBy } = req.query;
+const getCategory = async (req, res, next) => {
+  try {
+    const { perPage, page, orderBy, sortBy } = req.query;
 
-  const pages = page || 1;
-  const order = orderBy || "id";
-  const sort = sortBy || "ASC";
-  const limit = perPage || 15;
-  const offset = (pages - 1) * limit;
+    const pages = page || 1;
+    const order = orderBy || "id";
+    const sort = sortBy || "ASC";
+    const limit = perPage || 15;
+    const offset = (pages - 1) * limit;
 
-  categoryModel
-    .getCategory(limit, offset, order, sort)
-    .then((result) => {
-      const categories = result;
+    const { replay } = await redis.get('allCategory')
+
+    if (replay !== null) {
+      res.status(200)
+      res.json({
+        message: 'data from cache',
+        data: JSON.parse(replay)
+      });
+    } else {
+      const result = await categoryModel.getCategory(limit, offset, order, sort)
+
+      redis.set('allCategory', JSON.stringify(result))
+
       res.status(200);
       res.json({
-        data: categories,
+        data: result,
       });
-    })
-    .catch((error) => {
-      console.log(error);
-      next(new Error("Internal server error"));
-    });
+    }
+  } catch (error) {
+    next(new Error("Internal server error"));
+  }
 };
 
 // Get Category By id
-const getCategoryById = (req, res, next) => {
-  const id = req.params.id;
-  categoryModel
-    .getCategoryById(id)
-    .then((result) => {
-      const categories = result;
+const getCategoryById = async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    console.log('jalan')
+
+    const { replay } = await redis.get(`v1/category/${id}`)
+
+    if (replay !== null) {
+      res.status(200)
+      res.json({
+        message: 'data from cache',
+        data: JSON.parse(replay)
+      })
+    } else {
+      const result = await categoryModel.getCategoryById(id)
+
+      redis.set(`v1/category/${id}`, JSON.stringify(result))
+
       res.status(200);
       res.json({
-        data: categories,
+        data: result,
       });
-    })
-    .catch((error) => {
-      console.log(error);
-      next(new Error("Internal server error"));
-    });
+    }
+
+    
+  } catch (error) {
+    next(new Error("Internal server error"));
+  }
 };
 
 // Update data from categories table
