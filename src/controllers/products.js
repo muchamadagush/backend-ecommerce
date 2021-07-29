@@ -136,7 +136,9 @@ const getProducts = (req, res, next) => {
       const allData = result.lesngth;
 
       // set cache redis all product
-      client.setex("allProduct", 60*60, JSON.stringify(result));
+      if (Object.values(req.query).length == 0) {
+        client.setex("allProduct", 60*60, JSON.stringify(result));
+      }
 
       const totalPage = Math.ceil(allData / limit);
       productModel
@@ -225,7 +227,8 @@ const updateProduct = async (req, res, next) => {
       return res.status(400).send({ message: "Price cannot be null" });
     if (!stock)
       return res.status(400).send({ message: "Stock cannot be null" });
-    if (!type) return res.status(400).send({ message: "Type cannot be null" });
+    if (!type)
+      return res.status(400).send({ message: "Type cannot be null" });
     if (!color)
       return res.status(400).send({ message: "Color cannot be null" });
     if (!status)

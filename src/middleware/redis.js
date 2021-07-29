@@ -2,8 +2,9 @@ const redis = require("redis")
 const client = redis.createClient();
 
 const hitCacheAllProduct = (req, res, next) => {
+  const queryParameter = Object.values(req.query).length
   client.get('allProduct', (err, data) => {
-    if (data !== null) {
+    if (data !== null && queryParameter == 0) {
       const result = JSON.parse(data)
       console.log('data from redis')
       return res.status(200).send(result);
