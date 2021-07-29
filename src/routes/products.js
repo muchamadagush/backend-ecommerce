@@ -6,7 +6,7 @@ const auth = require('../middleware/auth')
 const redisCache = require('../middleware/redis')
 
 router
-  .post('/', auth, productController.createProduct)
+  .post('/', auth, redisCache.clearRedisAllProduct, productController.createProduct)
   .get('/', redisCache.hitCacheAllProduct, productController.getProducts)
   .put('/:id', auth, redisCache.clearRedisAllProduct, redisCache.clearRedisProductId, productController.updateProduct)
   .delete('/:id', auth, redisCache.clearRedisAllProduct, redisCache.clearRedisProductId, productController.deleteProduct)
