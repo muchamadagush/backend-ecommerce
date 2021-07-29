@@ -11,5 +11,6 @@ router
   .put('/:id', auth, redisCache.clearRedisAllProduct, redisCache.clearRedisProductId, productController.updateProduct)
   .delete('/:id', auth, redisCache.clearRedisAllProduct, redisCache.clearRedisProductId, productController.deleteProduct)
   .get('/:id', redisCache.hitCacheProductId, productController.getProduct)
+  .get('/category/:id', productController.getProductWhereCategory)
 
 module.exports = router;

@@ -18,7 +18,7 @@ const uploadImageHandler = async (req) => {
   const files = req.files.image;
 
   const productImages = [];
-  
+
   if (Array.isArray(files)) {
     files.map((file) => {
       if (file.size > 2 * 1024 * 1024) {
@@ -135,7 +135,7 @@ const getProducts = (req, res, next) => {
 
       // set cache redis all product
       if (Object.values(req.query).length == 0) {
-        client.setex("allProduct", 60*60, JSON.stringify(result));
+        client.setex("allProduct", 60 * 60, JSON.stringify(result));
       }
 
       const totalPage = Math.ceil(allData / limit);
@@ -315,16 +315,27 @@ const deleteProduct = async (req, res, next) => {
 
 // Get product where category
 const getProductWhereCategory = (req, res, next) => {
-  const categoryId = Number(req.params.category_id);
+  const categoryId = Number(req.params.id);
   console.log(categoryId, typeof categoryId);
   productModel
     .getProductWhereCategory(categoryId)
     .then((result) => {
       if (result.length) {
         const products = result;
+
+        const resProducts = []
+
+        for (let i = 0; i < products.length; i++) {
+          let product = products[i]
+          const parse = JSON.parse(products[i].image)
+          product.image = parse
+
+          resProducts.push(product)
+        }
+
         res.status(200);
         res.json({
-          data: products,
+          data: resProducts,
         });
       } else {
         res.status(404);

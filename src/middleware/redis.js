@@ -19,8 +19,8 @@ const hitCacheProductId = (req, res, next) => {
   client.get(`v1/products/${id}`, (err, data) => {
     if (data !== null) {
       const result = JSON.parse(data)
-      console.log('data from redis')
-      return res.status(200).send(result);
+      console.log(result)
+      return res.status(200).json({ data: result});
     } else {
       next()
     }
