@@ -3,10 +3,8 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable eqeqeq */
 const productModel = require("../models/products");
-const productImageModels = require("../models/productImages");
 const { v4: uuid } = require("uuid");
 const path = require("path");
-const redisGet = require('../middleware/redis')
 const redis = require('redis')
 const client = redis.createClient(6379);
 const fs = require("fs/promises");
@@ -133,7 +131,7 @@ const getProducts = (req, res, next) => {
   productModel
     .getAllProduct(search)
     .then((result) => {
-      const allData = result.lesngth;
+      const allData = result.length;
 
       // set cache redis all product
       if (Object.values(req.query).length == 0) {
@@ -146,13 +144,24 @@ const getProducts = (req, res, next) => {
         .then((result) => {
           if (result.length) {
             const products = result;
+
+            const resProducts = []
+
+            for (let i = 0; i < products.length; i++) {
+              let product = products[i]
+              const parse = JSON.parse(products[i].image)
+              product.image = parse
+
+              resProducts.push(product)
+            }
+
             res.status(200);
             res.json({
               allData,
               page,
               perPage: limit,
               totalPage,
-              data: products,
+              data: resProducts,
             });
           } else {
             res.status(404);
