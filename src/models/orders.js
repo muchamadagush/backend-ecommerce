@@ -13,7 +13,7 @@ const getProduct = (productId) => new Promise((resolve, reject) => {
 
 // Check order available
 const checkOrder = (userId) => new Promise((resolve, reject) => {
-  conn.query(`SELECT * FROM orders WHERE userId = ${userId} AND status = 'oncart'`, (error, result) => {
+  conn.query('SELECT * FROM orders WHERE userId = ? AND status = "oncart"', userId, (error, result) => {
     if (!error) {
       resolve(result);
     } else {
@@ -134,7 +134,7 @@ const getOrder = (id) => new Promise((resolve, reject) => {
 
 // Get order where user id
 const getOrderByIdUser = (id) => new Promise((resolve, reject) => {
-  conn.query(`SELECT * FROM orders WHERE userId = ${id}`, (error, result) => {
+  conn.query('SELECT * FROM orders WHERE userId = ?', id, (error, result) => {
     if (!error) {
       resolve(result);
     } else {
@@ -165,6 +165,38 @@ const deleteOrder = (orderId) => new Promise((resolve, reject) => {
   });
 });
 
+// Get order onCart
+const getOrderOnCart = (userId) => new Promise((resolve, reject) => {
+  conn.query('SELECT * FROM orders WHERE userId = ? AND status = \'oncart\'', userId, (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
+// Get orderDetails by OrderId
+const getOrderDetailsByOrderId = (orderId) => new Promise((resolve, reject) => {
+  conn.query('SELECT orderdetails.*, products.image as image, products.title as title, products.price as price FROM orderdetails INNER JOIN products ON orderdetails.productId = products.id WHERE orderId = ?', orderId, (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
+const getOrdersByUser = (userId) => new Promise((resolve, reject) => {
+  conn.query('SELECT * FROM orders WHERE userId = ?', userId, (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
 module.exports = {
   getProduct,
   createOrders,
@@ -181,4 +213,7 @@ module.exports = {
   deleteOrder,
   getOrderByIdUser,
   getOrders,
+  getOrderOnCart,
+  getOrderDetailsByOrderId,
+  getOrdersByUser,
 };

@@ -37,9 +37,8 @@ const getColors = (req, res, next) => {
         data: result,
       });
     })
-    .then((error) => {
-      console.log(error);
-      next(new Error('Internal server error'));
+    .catch((error) => {
+      next(new Error(error.message));
     });
 };
 

@@ -1,23 +1,23 @@
-const redisClient = require('redis').createClient
+/* eslint-disable no-console */
+/* eslint-disable camelcase */
+const redisClient = require('redis').createClient;
 
-const redisCon = redisClient(6379)
+const redisCon = redisClient(6379);
 
 /**
  * get redis cache
  * @param {string} redis_key
  */
 
-const get = (redis_key) => {
-  return new Promise((resolve) => {
-    redisCon.get(redis_key, (err, replay) => {
-      if (err) {
-        console.error('Redis con', err)
-      } else {
-        resolve({ replay })
-      }
-    })
-  })
-}
+const get = (redis_key) => new Promise((resolve) => {
+  redisCon.get(redis_key, (err, replay) => {
+    if (err) {
+      console.error('Redis con', err);
+    } else {
+      resolve({ replay });
+    }
+  });
+});
 
 /**
  * set redis cache
@@ -26,8 +26,8 @@ const get = (redis_key) => {
  */
 
 const set = (redis_key, redis_value) => {
-  redisCon.set(redis_key, redis_value)
-}
+  redisCon.set(redis_key, redis_value);
+};
 
 /**
  * delete redis cache
@@ -35,10 +35,11 @@ const set = (redis_key, redis_value) => {
  */
 
 const del = (redis_key) => {
-  redisCon.del(redis_key)
-}
+  redisCon.del(redis_key);
+};
 
 module.exports = {
   get,
-  set
-}
+  set,
+  del,
+};

@@ -70,5 +70,5 @@ module.exports = {
   getCategory,
   updateCategory,
   deleteCategory,
-  getCategoryById
+  getCategoryById,
 };

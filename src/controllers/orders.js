@@ -1,3 +1,4 @@
+/* eslint-disable no-plusplus */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-console */
 /* eslint-disable radix */
@@ -9,9 +10,8 @@ const orderModels = require('../models/orders');
 // Create Order
 const createOrders = (req, res, next) => {
   const id = uuid().split('-').join('');
-  const { productId } = req.params;
   const {
-    size, color, qty, userId,
+    size, color, qty, userId, productId,
   } = req.body;
 
   const dataOrder = {
@@ -44,20 +44,19 @@ const createOrders = (req, res, next) => {
                 .then(() => {
                   orderModels
                     .createOrderDetails(dataOrder)
-                    .then((result) => {
+                    .then(() => {
                       res.status(201);
-                      result.info = 'Successfully create order';
                       res.json({
-                        message: result,
+                        message: 'Successfully create order',
                       });
                     })
                     .catch((error) => {
-                      console.log(error);
+                      console.log(error, '5');
                       next(new Error('Internal server error'));
                     });
                 })
                 .catch((error) => {
-                  console.log(error);
+                  console.log(error, '6');
                   next(new Error('Internal server error'));
                 });
             } else {
@@ -80,15 +79,14 @@ const createOrders = (req, res, next) => {
                       if (result.length == 0) {
                         orderModels
                           .createOrderDetails(orderDetail)
-                          .then((result) => {
+                          .then(() => {
                             res.status(201);
                             res.json({
                               message: 'Data succesfully created',
-                              data: result,
                             });
                           })
                           .catch((error) => {
-                            console.log(error);
+                            console.log(error, '7');
                             next(new Error('Internal server error'));
                           });
                       } else {
@@ -96,32 +94,31 @@ const createOrders = (req, res, next) => {
                         const qtyUpdate = result[0].qty + parseInt(qty);
                         orderModels
                           .updateOrderDetails(qtyUpdate, idOrderDetails)
-                          .then((result) => {
+                          .then(() => {
                             res.status(200);
                             res.json({
                               message: 'Data succesfully updated',
-                              data: result,
                             });
                           })
                           .catch((error) => {
-                            console.log(error);
+                            console.log(error, '1');
                             next(new Error('Internal server error'));
                           });
                       }
                     })
                     .catch((error) => {
-                      console.log(error);
+                      console.log(error, '2');
                       next(new Error('Internal server error'));
                     });
                 })
                 .catch((error) => {
-                  console.log(error);
+                  console.log(error, '3');
                   next(new Error('Internal server error'));
                 });
             }
           })
           .catch((error) => {
-            console.log(error);
+            console.log(error, '4');
             next(new Error('Internal server error'));
           });
       } else {
@@ -132,7 +129,7 @@ const createOrders = (req, res, next) => {
       }
     })
     .catch((error) => {
-      console.log(error);
+      console.log(error.message);
       next(new Error('Internal server error'));
     });
 };
@@ -276,15 +273,72 @@ const getOrderByIdUser = (req, res, next) => {
   orderModels
     .getOrderByIdUser(userId)
     .then((result) => {
+      console.log(result);
+      res.status(200);
+      res.json({
+        data: result,
+      });
+      // if (result.length) {
+      // } else {
+      //   res.status(404);
+      //   res.json({
+      //     message: `Order data where user id ${userId} not found`,
+      //   });
+      // }
+    })
+    .catch((error) => {
+      console.log(error);
+      next(new Error('Internal server error'));
+    });
+};
+
+const getOrderOnCart = (req, res, next) => {
+  const { userId } = req.params;
+
+  orderModels
+    .getOrderOnCart(userId)
+    .then((result) => {
       if (result.length) {
-        res.status(200);
-        res.json({
-          data: result,
-        });
+        const data = result;
+        const orderId = result[0].id;
+
+        orderModels
+          .getOrderDetailsByOrderId(orderId)
+          .then((result) => {
+            if (result.length) {
+              const products = result;
+              const resProducts = [];
+
+              for (let i = 0; i < products.length; i++) {
+                const product = products[i];
+                const parse = JSON.parse(products[i].image);
+                product.image = parse;
+
+                resProducts.push(product);
+              }
+
+              res.status(200);
+              res.json({
+                data: {
+                  data,
+                  products: resProducts,
+                },
+              });
+            } else {
+              res.status(404);
+              res.json({
+                message: 'Data not found',
+              });
+            }
+          })
+          .catch((error) => {
+            console.log(error);
+            next(new Error('Internal server error get'));
+          });
       } else {
         res.status(404);
         res.json({
-          message: `Order data where user id ${userId} not found`,
+          message: 'Data not found',
         });
       }
     })
@@ -294,10 +348,80 @@ const getOrderByIdUser = (req, res, next) => {
     });
 };
 
+const updateOrderQty = (req, res, next) => {
+  const { qty } = req.body;
+  const { id } = req.params;
+
+  orderModels.getOrderDetail(id)
+    .then((result) => {
+      const { productId } = result[0];
+      const { orderId } = result[0];
+      const total = result[0].qty;
+      orderModels.getProduct(productId)
+        .then((result) => {
+          const { price } = result[0];
+          const newSubTotal = price * qty;
+          const minusSubTotal = total * price;
+          orderModels.getOrder(orderId)
+            .then((result) => {
+              const subTotal = (result[0].subTotal - minusSubTotal) + newSubTotal;
+              orderModels.updateOrder(subTotal, orderId)
+                .then(() => {
+                  orderModels
+                    .updateOrderDetails(qty, id)
+                    .then(() => {
+                      res.status(200);
+                      res.json({
+                        message: 'Data succesfully updated',
+                      });
+                    })
+                    .catch((error) => {
+                      next(new Error(error.message));
+                    });
+                })
+                .catch((error) => {
+                  next(new Error(error.message));
+                });
+            });
+        })
+        .catch((error) => {
+          next(new Error(error.message));
+        });
+    })
+    .catch((error) => {
+      next(new Error(error.message));
+    });
+};
+
+const getOrdersByUser = (req, res, next) => {
+  const { userId } = req.params;
+
+  orderModels.getOrdersByUser(userId)
+    .then((result) => {
+      if (result.length) {
+        res.status(200);
+        res.json({
+          data: result,
+        });
+      } else {
+        res.status(404);
+        res.json({
+          message: 'Data not found',
+        });
+      }
+    })
+    .catch((error) => {
+      next(new Error(error.message));
+    });
+};
+
 module.exports = {
   createOrders,
   updateOrderStatus,
   deleteOrderDetail,
   getOrderByIdUser,
   getOrders,
+  getOrderOnCart,
+  updateOrderQty,
+  getOrdersByUser,
 };
