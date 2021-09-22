@@ -4,6 +4,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const userModels = require('../models/users');
+const storeModels = require('../models/store');
 
 const uploadAvatarHandler = async (req) => {
   const { avatar: file } = req.files;
@@ -20,7 +21,7 @@ const uploadAvatarHandler = async (req) => {
 
 const register = async (req, res, next) => {
   try {
-    const id = uuid().split('-').join('');
+    const userId = uuid().split('-').join('');
     const {
       name, email, phone, password, role, store,
     } = req.body;
@@ -36,16 +37,43 @@ const register = async (req, res, next) => {
     bcrypt.genSalt(10, (err, salt) => {
       bcrypt.hash(password, salt, (error, hash) => {
         const data = {
-          id,
+          id: userId,
           name,
           email,
           password: hash,
           phone,
           role,
-          store,
         };
 
-        userModels.register(data);
+        // eslint-disable-next-line eqeqeq
+        if (role == 1) {
+          const dataUser = {
+            ...data,
+            store: 'true',
+          };
+
+          userModels.register(dataUser);
+
+          const dataStore = {
+            id: uuid().split('-').join(''),
+            userId,
+            name: store,
+            description: store,
+          };
+
+          storeModels.addStore(dataStore);
+        }
+
+        // eslint-disable-next-line eqeqeq
+        if (role == 2) {
+          const dataUser = {
+            ...data,
+            store: 'false',
+          };
+
+          userModels.register(dataUser);
+        }
+
         delete data.password;
 
         res.status(201).send({
@@ -61,10 +89,12 @@ const register = async (req, res, next) => {
 
 const login = async (req, res, next) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
+    let { role } = req.body;
     const user = (await userModels.findUser(email))[0];
-    // console.log(user)
     if (!user) return res.status(404).send({ message: 'email not registered!' });
+    // eslint-disable-next-line radix
+    role = parseInt(role);
 
     if (user.role !== role) {
       return res
