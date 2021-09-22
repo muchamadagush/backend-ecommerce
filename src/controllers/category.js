@@ -5,7 +5,6 @@ const { v4: uuid } = require('uuid');
 const path = require('path');
 const fs = require('fs/promises');
 const categoryModel = require('../models/category');
-const redis = require('../models/redis');
 
 const uploadImageHandler = async (req) => {
   if (req.files === null) {
@@ -39,7 +38,9 @@ const createCategory = async (req, res, next) => {
     if (req.user.role !== 1) {
       return res
         .status(400)
-        .send({ message: 'you do not have access rights to add category data' });
+        .send({
+          message: 'you do not have access rights to add category data',
+        });
     }
 
     if (!req.body.title) {
@@ -80,24 +81,12 @@ const getCategory = async (req, res, next) => {
     const limit = perPage || 15;
     const offset = (pages - 1) * limit;
 
-    const { replay } = await redis.get('allCategory');
+    const result = await categoryModel.getCategory(limit, offset, order, sort);
 
-    if (replay !== null) {
-      res.status(200);
-      res.json({
-        message: 'data from cache',
-        data: JSON.parse(replay),
-      });
-    } else {
-      const result = await categoryModel.getCategory(limit, offset, order, sort);
-
-      redis.set('allCategory', JSON.stringify(result));
-
-      res.status(200);
-      res.json({
-        data: result,
-      });
-    }
+    res.status(200);
+    res.json({
+      data: result,
+    });
   } catch (error) {
     next(new Error('Internal server error'));
   }
@@ -107,26 +96,12 @@ const getCategory = async (req, res, next) => {
 const getCategoryById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    console.log('jalan');
+    const result = await categoryModel.getCategoryById(id);
 
-    const { replay } = await redis.get(`v1/category/${id}`);
-
-    if (replay !== null) {
-      res.status(200);
-      res.json({
-        message: 'data from cache',
-        data: JSON.parse(replay),
-      });
-    } else {
-      const result = await categoryModel.getCategoryById(id);
-
-      redis.set(`v1/category/${id}`, JSON.stringify(result));
-
-      res.status(200);
-      res.json({
-        data: result,
-      });
-    }
+    res.status(200);
+    res.json({
+      data: result,
+    });
   } catch (error) {
     next(new Error('Internal server error'));
   }
@@ -138,7 +113,9 @@ const updateCategory = async (req, res, next) => {
     if (req.user.role !== 1) {
       return res
         .status(400)
-        .send({ message: 'you do not have access rights to edit category data' });
+        .send({
+          message: 'you do not have access rights to edit category data',
+        });
     }
 
     if (!req.body.title) {
@@ -187,7 +164,9 @@ const deleteCategory = async (req, res, next) => {
     if (req.user.role !== 1) {
       return res
         .status(400)
-        .send({ message: 'you do not have access rights to delete category data' });
+        .send({
+          message: 'you do not have access rights to delete category data',
+        });
     }
 
     const { id } = req.params;
