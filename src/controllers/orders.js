@@ -1,3 +1,5 @@
+/* eslint-disable no-await-in-loop */
+/* eslint-disable consistent-return */
 /* eslint-disable no-plusplus */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-console */
@@ -6,16 +8,23 @@
 /* eslint-disable no-shadow */
 const { v4: uuid } = require('uuid');
 const orderModels = require('../models/orders');
+const productModels = require('../models/products');
+const storeModels = require('../models/store');
 
 // Create Order
 const createOrders = (req, res, next) => {
-  const id = uuid().split('-').join('');
+  const orderId = uuid().split('-').join('');
   const {
     size, color, qty, userId, productId,
   } = req.body;
 
+  if (!size) return res.status(400).send({ message: 'Size cannot be null' });
+  if (!color) return res.status(400).send({ message: 'Color cannot be null' });
+  if (!qty) return res.status(400).send({ message: 'Qty cannot be null' });
+
   const dataOrder = {
-    orderId: id,
+    id: uuid().split('-').join(''),
+    orderId,
     productId,
     size,
     color,
@@ -32,7 +41,7 @@ const createOrders = (req, res, next) => {
           .then((result) => {
             if (result.length == 0) {
               const data = {
-                id,
+                id: orderId,
                 userId,
                 subTotal,
                 status: 'oncart',
@@ -51,13 +60,11 @@ const createOrders = (req, res, next) => {
                       });
                     })
                     .catch((error) => {
-                      console.log(error, '5');
-                      next(new Error('Internal server error'));
+                      next(new Error(error.message));
                     });
                 })
                 .catch((error) => {
-                  console.log(error, '6');
-                  next(new Error('Internal server error'));
+                  next(new Error(error.message));
                 });
             } else {
               const idOrder = result[0].id;
@@ -352,37 +359,39 @@ const updateOrderQty = (req, res, next) => {
   const { qty } = req.body;
   const { id } = req.params;
 
-  orderModels.getOrderDetail(id)
+  orderModels
+    .getOrderDetail(id)
     .then((result) => {
       const { productId } = result[0];
       const { orderId } = result[0];
       const total = result[0].qty;
-      orderModels.getProduct(productId)
+      orderModels
+        .getProduct(productId)
         .then((result) => {
           const { price } = result[0];
           const newSubTotal = price * qty;
           const minusSubTotal = total * price;
-          orderModels.getOrder(orderId)
-            .then((result) => {
-              const subTotal = (result[0].subTotal - minusSubTotal) + newSubTotal;
-              orderModels.updateOrder(subTotal, orderId)
-                .then(() => {
-                  orderModels
-                    .updateOrderDetails(qty, id)
-                    .then(() => {
-                      res.status(200);
-                      res.json({
-                        message: 'Data succesfully updated',
-                      });
-                    })
-                    .catch((error) => {
-                      next(new Error(error.message));
+          orderModels.getOrder(orderId).then((result) => {
+            const subTotal = result[0].subTotal - minusSubTotal + newSubTotal;
+            orderModels
+              .updateOrder(subTotal, orderId)
+              .then(() => {
+                orderModels
+                  .updateOrderDetails(qty, id)
+                  .then(() => {
+                    res.status(200);
+                    res.json({
+                      message: 'Data succesfully updated',
                     });
-                })
-                .catch((error) => {
-                  next(new Error(error.message));
-                });
-            });
+                  })
+                  .catch((error) => {
+                    next(new Error(error.message));
+                  });
+              })
+              .catch((error) => {
+                next(new Error(error.message));
+              });
+          });
         })
         .catch((error) => {
           next(new Error(error.message));
@@ -396,7 +405,8 @@ const updateOrderQty = (req, res, next) => {
 const getOrdersByUser = (req, res, next) => {
   const { userId } = req.params;
 
-  orderModels.getOrdersByUser(userId)
+  orderModels
+    .getOrdersByUser(userId)
     .then((result) => {
       if (result.length) {
         res.status(200);
@@ -415,6 +425,56 @@ const getOrdersByUser = (req, res, next) => {
     });
 };
 
+const checkoutOrder = async (req, res, next) => {
+  try {
+    const { id, status, addressId } = req.body;
+
+    const data = {
+      status,
+      addressId,
+    };
+
+    await orderModels.checkoutOrder(id, data);
+
+    res.status(200);
+    res.json({
+      message: 'Successfully checkout order!',
+    });
+  } catch (error) {
+    next(new Error(error.message));
+  }
+};
+
+const getOrdersBySeller = async (req, res, next) => {
+  try {
+    const { id } = req.user;
+
+    const storeId = (await storeModels.getStoreByUserId(id))[0].id;
+    const response = await orderModels.getOrders();
+
+    const data = [];
+    for (let i = 0; i < response.length; i++) {
+      const orderDetails = await orderModels.getOrderDetailsByOrderId(response[i].id);
+
+      for (let j = 0; j < orderDetails.length; j++) {
+        // eslint-disable-next-line max-len
+        const productStoreId = (await productModels.getProduct(orderDetails[j].productId))[0].storeId;
+
+        if (productStoreId === storeId) {
+          data.push(response[i]);
+        }
+      }
+    }
+
+    res.status(200);
+    res.json({
+      data,
+    });
+  } catch (error) {
+    next(new Error(error.message));
+  }
+};
+
 module.exports = {
   createOrders,
   updateOrderStatus,
@@ -424,4 +484,6 @@ module.exports = {
   getOrderOnCart,
   updateOrderQty,
   getOrdersByUser,
+  checkoutOrder,
+  getOrdersBySeller,
 };

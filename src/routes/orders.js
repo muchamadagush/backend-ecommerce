@@ -1,5 +1,6 @@
 const express = require('express');
 const orderControllers = require('../controllers/orders');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -11,6 +12,8 @@ router
   .get('/user/:userId', orderControllers.getOrderByIdUser)
   .get('/cart/:userId', orderControllers.getOrderOnCart)
   .patch('/update/:id', orderControllers.updateOrderQty)
-  .get('/all/:userId', orderControllers.getOrdersByUser);
+  .get('/all/:userId', orderControllers.getOrdersByUser)
+  .patch('/', auth, orderControllers.checkoutOrder)
+  .get('/seller', auth, orderControllers.getOrdersBySeller);
 
 module.exports = router;

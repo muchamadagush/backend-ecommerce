@@ -8,10 +8,7 @@
 const productModel = require('../models/products');
 const { v4: uuid } = require('uuid');
 const path = require('path');
-const redis = require('redis');
-
-const client = redis.createClient(6379);
-const fs = require('fs/promises');
+const storeModels = require('../models/store');
 
 // Handle upload image
 const uploadImageHandler = async (req) => {
@@ -83,6 +80,8 @@ const createProduct = async (req, res, next) => {
     const {
       title, description, categoryId, price, stock, type, color,
     } = req.body;
+    const userId = req.user.id;
+    const storeId = (await storeModels.getStoreByUserId(userId))[0].id;
 
     if (!title) return res.status(400).send({ message: 'Title cannot be null' });
     if (!price) return res.status(400).send({ message: 'Price cannot be null' });
@@ -95,6 +94,7 @@ const createProduct = async (req, res, next) => {
     const image = await uploadImageHandler(req);
 
     const data = {
+      storeId,
       title,
       description,
       category_id: categoryId,
@@ -132,11 +132,6 @@ const getProducts = (req, res, next) => {
     .getAllProduct(search)
     .then((results) => {
       const allData = results.length;
-
-      // set cache redis all product
-      // if (Object.values(req.query).length === 0) {
-      //   client.setex('allProduct', 60 * 60, JSON.stringify(results));
-      // }
 
       const totalPage = Math.ceil(allData / limit);
       productModel
@@ -190,9 +185,6 @@ const getProduct = (req, res, next) => {
       const products = result;
       products[0].image = image;
 
-      // set cache redis product by id
-      client.setex(`v1/products/${id}`, 60 * 60, JSON.stringify(products));
-
       res.status(200);
       res.json({
         data: products,
@@ -235,7 +227,7 @@ const updateProduct = async (req, res, next) => {
 
     let image = '';
     if (req.files) { image = await (await uploadImageHandler(req)).file_name; }
-    if (!req.files) { image = req.body.image.split(','); }
+    if (!req.files) { image = req.body.image; }
 
     const data = {
       title,
@@ -249,21 +241,7 @@ const updateProduct = async (req, res, next) => {
       image: JSON.stringify(image),
     };
 
-    const images = await productModel.getProduct(id);
-    const oldImages = JSON.parse(images[0].image);
-
     await productModel.updateProduct(data, id);
-
-    if (req.files != null) {
-      oldImages.map((img) => {
-        fs.unlink(path.join(__dirname, `/../assets/images/${img}`)),
-        (err) => {
-          if (err) {
-            console.log(`Error unlink image product!${err}`);
-          }
-        };
-      });
-    }
 
     res.status(200).send({
       message: 'Successfully update product!',
@@ -285,19 +263,7 @@ const deleteProduct = async (req, res, next) => {
 
     const { id } = req.params;
 
-    const images = await productModel.getProduct(id);
-    const oldImages = JSON.parse(images[0].image);
-
     await productModel.deleteProduct(id);
-
-    oldImages.map((img) => {
-      fs.unlink(path.join(__dirname, `/../assets/images/${img}`)),
-      (err) => {
-        if (err) {
-          console.log(`Error unlink image product!${err}`);
-        }
-      };
-    });
 
     res.status(202);
     res.json({

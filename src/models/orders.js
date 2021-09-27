@@ -197,6 +197,16 @@ const getOrdersByUser = (userId) => new Promise((resolve, reject) => {
   });
 });
 
+const checkoutOrder = (id, data) => new Promise((resolve, reject) => {
+  conn.query('UPDATE orders SET ?  WHERE id = ?', [data, id], (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
 module.exports = {
   getProduct,
   createOrders,
@@ -216,4 +226,5 @@ module.exports = {
   getOrderOnCart,
   getOrderDetailsByOrderId,
   getOrdersByUser,
+  checkoutOrder,
 };

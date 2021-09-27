@@ -3,14 +3,13 @@ const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/products');
 const auth = require('../middleware/auth');
-const redisCache = require('../middleware/redis');
 
 router
-  .post('/', auth, redisCache.clearRedisAllProduct, productController.createProduct)
+  .post('/', auth, productController.createProduct)
   .get('/', productController.getProducts)
-  .put('/:id', auth, redisCache.clearRedisAllProduct, redisCache.clearRedisProductId, productController.updateProduct)
-  .delete('/:id', auth, redisCache.clearRedisAllProduct, redisCache.clearRedisProductId, productController.deleteProduct)
-  .get('/:id', redisCache.hitCacheProductId, productController.getProduct)
+  .put('/:id', auth, productController.updateProduct)
+  .delete('/:id', auth, productController.deleteProduct)
+  .get('/:id', productController.getProduct)
   .get('/category/:id', productController.getProductWhereCategory);
 
 module.exports = router;

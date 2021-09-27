@@ -3,8 +3,11 @@ const { v4: uuid } = require('uuid');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const moment = require('moment');
 const userModels = require('../models/users');
 const storeModels = require('../models/store');
+
+moment.locale('id');
 
 const uploadAvatarHandler = async (req) => {
   const { avatar: file } = req.files;
@@ -130,31 +133,90 @@ const login = async (req, res, next) => {
   }
 };
 
+const getUser = async (req, res, next) => {
+  try {
+    const { email } = req.user;
+
+    let data = (await userModels.findUser(email))[0];
+
+    if (data.dateOfBirth) {
+      const dateOfBirth = moment(data.dateOfBirth).format('L');
+      data.date = dateOfBirth.substring(0, 2);
+      data.month = dateOfBirth.substring(3, 5);
+      data.year = dateOfBirth.substring(6, 10);
+    }
+
+    if (!data.dateOfBirth) {
+      data.date = '';
+      data.month = '';
+      data.year = '';
+    }
+
+    if (data.store === 'true') {
+      const store = await storeModels.getStoreByUserId(data.id);
+
+      data = {
+        ...data,
+        description: store[0].description,
+      };
+    }
+
+    res.status(200);
+    res.json({
+      data,
+    });
+  } catch (error) {
+    next(new Error(error.message));
+  }
+};
+
 const updateUser = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id, role } = req.user;
     const {
-      name, email, phone, role, store, gender,
+      name, email, phone, gender,
     } = req.body;
 
     if (!name) return res.status(400).send({ message: 'name cannot be null' });
     if (!email) return res.status(400).send({ message: 'name cannot be null' });
-    if (!role) return res.status(400).send({ message: 'role cannot be null' });
     if (!req.files) return res.status(400).send({ message: 'avatar cannot be null' });
 
     const avatar = await uploadAvatarHandler(req);
+    let data;
 
-    const data = {
-      name,
-      email,
-      phone,
-      role,
-      store,
-      avatar: avatar.fileName,
-      gender,
-    };
+    // eslint-disable-next-line eqeqeq
+    if (role == 1) {
+      if (!req.body.description) return res.status(400).send({ message: 'Description cannot be null' });
 
-    userModels.updateUser(id, data);
+      data = {
+        name,
+        email,
+        phone,
+        avatar: avatar.fileName,
+      };
+
+      const { description } = req.body;
+
+      await userModels.updateUser(id, data);
+      await storeModels.updateStore(id, description);
+    }
+
+    // eslint-disable-next-line eqeqeq
+    if (role == 2) {
+      if (!req.body.dateOfBirth) return res.status(400).send({ message: 'dateOfBirth cannot be null' });
+      data = {
+        name,
+        email,
+        phone,
+        role,
+        store: 'false',
+        avatar: avatar.fileName,
+        gender,
+        dateOfBirth: req.body.dateOfBirth,
+      };
+
+      await userModels.updateUser(id, data);
+    }
 
     res.status(200).send({
       message: 'Successfully update data!',
@@ -169,4 +231,5 @@ module.exports = {
   register,
   login,
   updateUser,
+  getUser,
 };
