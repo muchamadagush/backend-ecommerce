@@ -70,6 +70,7 @@ const createOrders = (req, res, next) => {
               const idOrder = result[0].id;
               const subTotalUpdate = result[0].subTotal + subTotal;
               const orderDetail = {
+                id: uuid().split('-').join(''),
                 orderId: idOrder,
                 productId,
                 size,
@@ -160,102 +161,46 @@ const updateOrderStatus = (req, res, next) => {
     });
 };
 
-const deleteOrderDetail = (req, res, next) => {
-  const { id } = req.params;
+const deleteOrderDetail = async (req, res, next) => {
+  try {
+    const { data } = req.params;
+    const selectedOrder = data.split(',');
 
-  orderModels
-    .getOrderDetail(id)
-    .then((result) => {
-      if (result.length == 1) {
-        const { orderId } = result[0];
-        const { productId } = result[0];
-        const orderQty = result[0].qty;
+    for (let i = 0; i < selectedOrder.length; i++) {
+      const resultGetOrderDetail = (
+        await orderModels.getOrderDetail(selectedOrder[i])
+      )[0];
 
-        orderModels
-          .getProduct(productId)
-          .then((result) => {
-            const { price } = result[0];
-            const minusSubTotal = orderQty * price;
-            orderModels
-              .getOrderDetails(orderId)
-              .then((result) => {
-                const { orderId } = result[0];
-                if (result.length > 1) {
-                  orderModels
-                    .getOrder(orderId)
-                    .then((result) => {
-                      const newSubTotal = result[0].subTotal - minusSubTotal;
-                      orderModels
-                        .deleteOrderDetail(id)
-                        .then((result) => {
-                          orderModels
-                            .updateOrder(newSubTotal, orderId)
-                            .then(() => {
-                              res.status(200);
-                              res.json({
-                                message:
-                                  'Product successfully deleted from cart',
-                                data: result,
-                              });
-                            })
-                            .catch((error) => {
-                              console.log(error);
-                              next(new Error('Internal server error'));
-                            });
-                        })
-                        .catch((error) => {
-                          console.log(error);
-                          next(new Error('Internal server error'));
-                        });
-                    })
-                    .catch((error) => {
-                      console.log(error);
-                      next(new Error('Internal server error'));
-                    });
-                } else {
-                  orderModels
-                    .deleteOrder(orderId)
-                    .then(() => {
-                      orderModels
-                        .deleteOrderDetail(id)
-                        .then((result) => {
-                          res.status(200);
-                          res.json({
-                            message: 'Product successfully deleted from cart',
-                            data: result,
-                          });
-                        })
-                        .catch((error) => {
-                          console.log(error);
-                          next(new Error('Internal server error'));
-                        });
-                    })
-                    .catch((error) => {
-                      console.log(error);
-                      next(new Error('Internal server error'));
-                    });
-                }
-              })
-              .catch((error) => {
-                console.log(error);
-                next(new Error('Internal server error'));
-              });
-          })
-          .catch((error) => {
-            console.log(error);
-            next(new Error('Internal server error'));
-          });
+      const { orderId, productId, qty } = resultGetOrderDetail;
+
+      const resultGetProduct = (await orderModels.getProduct(productId))[0];
+      const { price } = resultGetProduct;
+      const minusSubTotal = qty * price;
+
+      const resultGetOrderDetails = await orderModels.getOrderDetails(orderId);
+
+      if (resultGetOrderDetails.length > 1) {
+        const idOrder = resultGetOrderDetails[0].orderId;
+
+        const resultGetOrder = (await orderModels.getOrder(idOrder))[0];
+        const newSubTotal = resultGetOrder.subTotal - minusSubTotal;
+
+        await orderModels.deleteOrderDetail(selectedOrder[i]);
+
+        await orderModels.updateOrder(newSubTotal, idOrder);
       } else {
-        res.status(404);
-        res.json({
-          message: 'Data product not found',
-        });
+        await orderModels.deleteOrder(orderId);
+        await orderModels.deleteOrderDetail(selectedOrder[i]);
       }
-    })
-    .catch((error) => {
-      console.log(error);
-      next(new Error('Internal server error'));
+    }
+
+    res.status(200);
+    res.json({
+      message: 'Successfully delete data!',
     });
+  } catch (error) {
+    next(new Error(error.message));
+  }
 };
 
 // Get all data orders
@@ -454,11 +399,15 @@ const getOrdersBySeller = async (req, res, next) => {
 
     const data = [];
     for (let i = 0; i < response.length; i++) {
-      const orderDetails = await orderModels.getOrderDetailsByOrderId(response[i].id);
+      const orderDetails = await orderModels.getOrderDetailsByOrderId(
+        response[i].id,
+      );
 
       for (let j = 0; j < orderDetails.length; j++) {
         // eslint-disable-next-line max-len
-        const productStoreId = (await productModels.getProduct(orderDetails[j].productId))[0].storeId;
+        const productStoreId = (
+          await productModels.getProduct(orderDetails[j].productId)
+        )[0].storeId;
 
         if (productStoreId === storeId) {
           data.push(response[i]);

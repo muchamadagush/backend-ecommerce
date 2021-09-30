@@ -7,7 +7,7 @@ const router = express.Router();
 router
   .post('/', orderControllers.createOrders)
   .patch('/:id', orderControllers.updateOrderStatus)
-  .delete('/:id', orderControllers.deleteOrderDetail)
+  .delete('/:data', auth, orderControllers.deleteOrderDetail)
   .get('/', orderControllers.getOrders)
   .get('/user/:userId', orderControllers.getOrderByIdUser)
   .get('/cart/:userId', orderControllers.getOrderOnCart)
