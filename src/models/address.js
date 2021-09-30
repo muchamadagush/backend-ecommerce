@@ -41,9 +41,31 @@ const getPrimaryAddress = (userId) => new Promise((resolve, reject) => {
   });
 });
 
+const getAllAddress = (userId) => new Promise((resolve, reject) => {
+  conn.query(`SELECT * FROM address WHERE userId = '${userId}' ORDER BY status ASC`, (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
+const getAddress = (id) => new Promise((resolve, reject) => {
+  conn.query(`SELECT * FROM address WHERE id = '${id}'`, (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
 module.exports = {
   findAddressByUserId,
   createAddress,
   updateAddress,
   getPrimaryAddress,
+  getAllAddress,
+  getAddress,
 };
