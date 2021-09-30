@@ -9,6 +9,7 @@ router
   .get('/', auth, addressControllers.getPrimaryAddress)
   .get('/all', auth, addressControllers.getAllAddress)
   .get('/edit/:id', auth, addressControllers.getAddress)
-  .patch('/edit/:id', auth, addressControllers.updateAddress);
+  .patch('/edit/:id', auth, addressControllers.updateAddress)
+  .delete('/:id', auth, addressControllers.deleteAddress);
 
 module.exports = router;

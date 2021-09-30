@@ -61,6 +61,16 @@ const getAddress = (id) => new Promise((resolve, reject) => {
   });
 });
 
+const deleteAddress = (id) => new Promise((resolve, reject) => {
+  conn.query(`DELETE FROM address WHERE id = '${id}'`, (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
 module.exports = {
   findAddressByUserId,
   createAddress,
@@ -68,4 +78,5 @@ module.exports = {
   getPrimaryAddress,
   getAllAddress,
   getAddress,
+  deleteAddress,
 };

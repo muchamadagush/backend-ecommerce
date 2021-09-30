@@ -150,10 +150,26 @@ const updateAddress = async (req, res, next) => {
   }
 };
 
+const deleteAddress = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    await addressModels.deleteAddress(id);
+
+    res.status(204);
+    res.json({
+      message: 'successfully delete address',
+    });
+  } catch (error) {
+    next(new Error(error.message));
+  }
+};
+
 module.exports = {
   createAddress,
   getPrimaryAddress,
   getAllAddress,
   getAddress,
   updateAddress,
+  deleteAddress,
 };
