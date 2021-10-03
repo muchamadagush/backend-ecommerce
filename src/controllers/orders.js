@@ -44,6 +44,7 @@ const createOrders = (req, res, next) => {
                 id: orderId,
                 userId,
                 subTotal,
+                invoice: Math.floor(Math.random() * (9999999999 - 1000000000)) + 1000000000,
                 status: 'oncart',
                 createdAt: new Date(),
                 updatedAt: new Date(),
@@ -395,7 +396,7 @@ const getOrdersBySeller = async (req, res, next) => {
     const { id } = req.user;
 
     const storeId = (await storeModels.getStoreByUserId(id))[0].id;
-    const response = await orderModels.getOrders();
+    const response = await orderModels.getOrdersSeller();
 
     const data = [];
     for (let i = 0; i < response.length; i++) {

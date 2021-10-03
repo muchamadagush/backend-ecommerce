@@ -207,6 +207,16 @@ const checkoutOrder = (id, data) => new Promise((resolve, reject) => {
   });
 });
 
+const getOrdersSeller = () => new Promise((resolve, reject) => {
+  conn.query('SELECT * FROM orders WHERE status != "oncart"', (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
 module.exports = {
   getProduct,
   createOrders,
@@ -227,4 +237,5 @@ module.exports = {
   getOrderDetailsByOrderId,
   getOrdersByUser,
   checkoutOrder,
+  getOrdersSeller,
 };
