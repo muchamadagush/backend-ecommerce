@@ -16,6 +16,7 @@ router
   .patch('/', auth, orderControllers.checkoutOrder)
   .get('/seller', auth, orderControllers.getOrdersBySeller)
   .get('/order/:id', auth, orderControllers.getOrderById)
-  .post('/payment/:id', auth, orderControllers.payment);
+  .post('/payment/:id', auth, orderControllers.payment)
+  .get('/payment/:orderId', auth, orderControllers.getPayment);
 
 module.exports = router;

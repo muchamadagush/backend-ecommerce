@@ -227,6 +227,16 @@ const payment = (data) => new Promise((resolve, reject) => {
   });
 });
 
+const getPayment = (orderId) => new Promise((resolve, reject) => {
+  conn.query(`SELECT * FROM payment WHERE orderId = '${orderId}'`, (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
 module.exports = {
   getProduct,
   createOrders,
@@ -249,4 +259,5 @@ module.exports = {
   checkoutOrder,
   getOrdersSeller,
   payment,
+  getPayment,
 };

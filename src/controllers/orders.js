@@ -8,8 +8,11 @@
 /* eslint-disable no-shadow */
 const { v4: uuid } = require('uuid');
 const path = require('path');
+const moment = require('moment');
 const orderModels = require('../models/orders');
 const storeModels = require('../models/store');
+
+moment.locale('id');
 
 const uploadImageHandler = async (req) => {
   if (req.files === null) {
@@ -470,7 +473,7 @@ const payment = async (req, res, next) => {
       id: uuid().split('-').join(''),
       orderId,
       name,
-      image: JSON.stringify(image.file_name),
+      image: image.file_name,
       createdAt: new Date(),
     };
 
@@ -481,6 +484,22 @@ const payment = async (req, res, next) => {
     res.status(200);
     res.json({
       message: 'Payment in progress',
+    });
+  } catch (error) {
+    next(new Error(error.message));
+  }
+};
+
+const getPayment = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+
+    const response = await orderModels.getPayment(orderId);
+    response[0].createdAt = moment(response[0].createdAt).format('LL');
+
+    res.status(200);
+    res.json({
+      data: response,
     });
   } catch (error) {
     next(new Error(error.message));
@@ -500,4 +519,5 @@ module.exports = {
   getOrdersBySeller,
   getOrderById,
   payment,
+  getPayment,
 };
