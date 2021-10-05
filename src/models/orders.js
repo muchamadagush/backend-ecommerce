@@ -207,8 +207,18 @@ const checkoutOrder = (id, data) => new Promise((resolve, reject) => {
   });
 });
 
-const getOrdersSeller = () => new Promise((resolve, reject) => {
-  conn.query('SELECT * FROM orders WHERE status != "oncart"', (error, result) => {
+const getOrdersSeller = (id) => new Promise((resolve, reject) => {
+  conn.query(`SELECT * FROM orders WHERE status != "oncart" AND storeId = '${id}'`, (error, result) => {
+    if (!error) {
+      resolve(result);
+    } else {
+      reject(error);
+    }
+  });
+});
+
+const payment = (data) => new Promise((resolve, reject) => {
+  conn.query('INSERT INTO payment SET ?', data, (error, result) => {
     if (!error) {
       resolve(result);
     } else {
@@ -238,4 +248,5 @@ module.exports = {
   getOrdersByUser,
   checkoutOrder,
   getOrdersSeller,
+  payment,
 };

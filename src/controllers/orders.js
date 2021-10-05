@@ -7,15 +7,42 @@
 /* eslint-disable eqeqeq */
 /* eslint-disable no-shadow */
 const { v4: uuid } = require('uuid');
+const path = require('path');
 const orderModels = require('../models/orders');
-const productModels = require('../models/products');
 const storeModels = require('../models/store');
+
+const uploadImageHandler = async (req) => {
+  if (req.files === null) {
+    throw new Error('No file uploaded.');
+  }
+  if (req.files.image.size > 2 * 1024 * 1024) {
+    throw new Error('File size too large!');
+  }
+
+  const allowedExtension = ['.png', '.jpg', '.jpeg'];
+  const { image: file } = req.files;
+  const extension = path.extname(file.name);
+
+  if (!allowedExtension.includes(extension)) {
+    throw new Error(`File type ${extension} are not supported!`);
+  }
+
+  const fileName = `${uuid()}${extension}`;
+  const outputPath = path.join(__dirname, `/../assets/images/${fileName}`);
+  await file.mv(outputPath);
+
+  return {
+    message: 'Successfully uploaded',
+    file_name: fileName,
+    file_path: `${fileName}`,
+  };
+};
 
 // Create Order
 const createOrders = (req, res, next) => {
   const orderId = uuid().split('-').join('');
   const {
-    size, color, qty, userId, productId,
+    size, color, qty, userId, productId, storeId,
   } = req.body;
 
   if (!size) return res.status(400).send({ message: 'Size cannot be null' });
@@ -43,6 +70,7 @@ const createOrders = (req, res, next) => {
               const data = {
                 id: orderId,
                 userId,
+                storeId,
                 subTotal,
                 invoice: Math.floor(Math.random() * (9999999999 - 1000000000)) + 1000000000,
                 status: 'oncart',
@@ -396,29 +424,63 @@ const getOrdersBySeller = async (req, res, next) => {
     const { id } = req.user;
 
     const storeId = (await storeModels.getStoreByUserId(id))[0].id;
-    const response = await orderModels.getOrdersSeller();
+    const response = await orderModels.getOrdersSeller(storeId);
+
+    res.status(200);
+    res.json({
+      data: response,
+    });
+  } catch (error) {
+    next(new Error(error.message));
+  }
+};
+
+const getOrderById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const response = await orderModels.getOrderDetailsByOrderId(id);
 
     const data = [];
     for (let i = 0; i < response.length; i++) {
-      const orderDetails = await orderModels.getOrderDetailsByOrderId(
-        response[i].id,
-      );
+      const respons = response[i];
+      const parse = JSON.parse(response[i].image);
+      respons.image = parse;
 
-      for (let j = 0; j < orderDetails.length; j++) {
-        // eslint-disable-next-line max-len
-        const productStoreId = (
-          await productModels.getProduct(orderDetails[j].productId)
-        )[0].storeId;
-
-        if (productStoreId === storeId) {
-          data.push(response[i]);
-        }
-      }
+      data.push(respons);
     }
 
     res.status(200);
     res.json({
       data,
+    });
+  } catch (error) {
+    next(new Error(error.message));
+  }
+};
+
+const payment = async (req, res, next) => {
+  try {
+    const orderId = req.params.id;
+    const { name } = req.body;
+
+    const image = await uploadImageHandler(req);
+
+    const data = {
+      id: uuid().split('-').join(''),
+      orderId,
+      name,
+      image: JSON.stringify(image.file_name),
+      createdAt: new Date(),
+    };
+
+    await orderModels.payment(data);
+
+    await orderModels.updateOrderStatus('pending', orderId);
+
+    res.status(200);
+    res.json({
+      message: 'Payment in progress',
     });
   } catch (error) {
     next(new Error(error.message));
@@ -436,4 +498,6 @@ module.exports = {
   getOrdersByUser,
   checkoutOrder,
   getOrdersBySeller,
+  getOrderById,
+  payment,
 };
